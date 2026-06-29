@@ -1,6 +1,6 @@
 # Initial repository bootstrap
 
-- **Status:** in-progress
+- **Status:** complete
 - **Date:** 2026-06-29
 - **Owner:** agent
 
@@ -14,7 +14,7 @@ Bootstrap this repository as the foundation for a Pi extension that will show AP
 - [x] Add `AGENTS.md` and create the `.agents/` directory structure.
 - [x] Add a planning skill that requires plans in `.agents/plans/` before implementation work.
 - [x] Add a provider research skill documenting subscription usage endpoints and token-based auth flows.
-- [ ] Create the public GitHub repository `championswimmer/pi-subscription-meter` and push the local history.
+- [x] Create the public GitHub repository `championswimmer/pi-subscription-meter` and push the local history.
 
 ## Detailed implementation plan
 
@@ -36,3 +36,4 @@ Bootstrap this repository as the foundation for a Pi extension that will show AP
 - `git status`
 - verify `.agents/skills/*/SKILL.md` structure matches Agent Skills conventions
 - verify GitHub remote exists and branch is pushed
+- verify public repository exists at `https://github.com/championswimmer/pi-subscription-meter`
