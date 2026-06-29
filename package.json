@@ -1,5 +1,5 @@
 {
-  "name": "@championswimmer/pi-subscription-meter",
+  "name": "pi-subscription-meter",
   "version": "0.1.0",
   "description": "Pi extension scaffolding for showing subscription and quota usage across AI providers.",
   "type": "module",
