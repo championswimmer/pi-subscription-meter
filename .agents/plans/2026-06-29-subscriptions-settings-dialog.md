@@ -1,6 +1,6 @@
 # Subscriptions settings persistence and dialog
 
-- **Status:** in-progress
+- **Status:** complete
 - **Date:** 2026-06-29
 - **Owner:** agent
 
@@ -10,15 +10,15 @@ Replace the temporary environment-variable based provider enablement with saved 
 
 ## Checklist
 
-- [ ] Review Pi docs for accessing the agent directory and for relevant TUI/dialog patterns.
-- [ ] Design a persisted settings format for enabled/disabled providers in `subscription-meter.json` under the Pi agent directory.
-- [ ] Implement settings load/save helpers and remove the environment-variable override behavior.
-- [ ] Update the provider registry to derive enabled providers from persisted settings with sensible defaults.
-- [ ] Add a settings sub-dialog that opens on `s` from the main subscriptions dialog.
-- [ ] Allow toggling provider enabled state from the settings dialog and persist changes immediately or on close.
-- [ ] Refresh the main tabs after settings changes so the visible tab count matches enabled providers.
-- [ ] Update docs and plan files to reflect the new settings-based behavior.
-- [ ] Validate with `npm run typecheck`.
+- [x] Review Pi docs for accessing the agent directory and for relevant TUI/dialog patterns.
+- [x] Design a persisted settings format for enabled/disabled providers in `subscription-meter.json` under the Pi agent directory.
+- [x] Implement settings load/save helpers and remove the environment-variable override behavior.
+- [x] Update the provider registry to derive enabled providers from persisted settings with sensible defaults.
+- [x] Add a settings sub-dialog that opens on `s` from the main subscriptions dialog.
+- [x] Allow toggling provider enabled state from the settings dialog and persist changes immediately or on close.
+- [x] Refresh the main tabs after settings changes so the visible tab count matches enabled providers.
+- [x] Update docs and plan files to reflect the new settings-based behavior.
+- [x] Validate with `npm run typecheck`.
 
 ## Detailed implementation plan
 
@@ -32,13 +32,15 @@ Replace the temporary environment-variable based provider enablement with saved 
 
 ## Risks / questions
 
-- Pi may not expose a first-class extension data directory API, so we may need to derive the agent directory from documented paths.
-- A nested dialog may need to be implemented inside one custom renderer rather than literally stacking two separate `ctx.ui.custom()` calls.
-- We should avoid corrupting user settings if a write fails or if the JSON becomes invalid.
+- Pi does expose a documented helper (`getAgentDir()`), so the implementation uses that rather than hard-coding `~/.pi/agent`.
+- The settings UI is implemented as a true overlay dialog on top of the main subscriptions dialog using `ctx.ui.custom(..., { overlay: true })`.
+- Settings writes use a temp-file-then-rename flow to reduce the chance of leaving a partially written JSON file behind.
+- Provider enablement is now settings-driven; future work may still want project-local overrides, but environment-variable overrides have been intentionally removed.
 
 ## Validation
 
 - `npm run typecheck`
 - verify environment-variable-based provider selection has been removed
 - verify settings path resolves under the Pi agent directory and writes `subscription-meter.json`
-- verify pressing `s` opens the settings overlay and toggling providers changes the visible tabs after closing it
+- verify pressing `s` opens the settings overlay and toggling providers updates the enabled provider tabs
+- verify the implementation uses Pi’s documented `getAgentDir()` helper so `PI_CODING_AGENT_DIR` is respected

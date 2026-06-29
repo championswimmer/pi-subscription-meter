@@ -47,39 +47,16 @@ export class SubscriptionProviderRegistry {
   }
 }
 
-function parseProviderIds(value: string | undefined): SubscriptionProviderId[] | undefined {
-  if (!value?.trim()) {
-    return undefined;
-  }
-
-  const knownIds = new Set<SubscriptionProviderId>(DEFAULT_PROVIDERS.map((provider) => provider.id));
-  const parsedIds = value
-    .split(",")
-    .map((part) => part.trim())
-    .filter((part): part is SubscriptionProviderId => knownIds.has(part as SubscriptionProviderId));
-
-  return parsedIds.length > 0 ? parsedIds : undefined;
-}
-
-function getDefaultEnabledProviderIds(
-  providers: SubscriptionProviderDefinition[],
-  envProviders: string | undefined,
+export function getDefaultEnabledProviderIds(
+  providers: SubscriptionProviderDefinition[] = DEFAULT_PROVIDERS,
 ): SubscriptionProviderId[] {
-  const explicitProviderIds = parseProviderIds(envProviders);
-  if (explicitProviderIds) {
-    return explicitProviderIds;
-  }
-
   return providers.filter((provider) => provider.enabledByDefault).map((provider) => provider.id);
 }
 
 export function createDefaultSubscriptionProviderRegistry(
-  envProviders: string | undefined = process.env.PI_SUBSCRIPTION_METER_PROVIDERS,
+  enabledProviderIds: Iterable<SubscriptionProviderId> = getDefaultEnabledProviderIds(),
 ): SubscriptionProviderRegistry {
-  return new SubscriptionProviderRegistry(
-    DEFAULT_PROVIDERS,
-    getDefaultEnabledProviderIds(DEFAULT_PROVIDERS, envProviders),
-  );
+  return new SubscriptionProviderRegistry(DEFAULT_PROVIDERS, enabledProviderIds);
 }
 
 export { DEFAULT_PROVIDERS as subscriptionProviders };

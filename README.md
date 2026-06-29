@@ -49,15 +49,21 @@ Once this extension is loaded in Pi, use:
 
 This opens a tabbed dialog showing all currently enabled provider scaffolds.
 
+Press `s` inside the dialog to open provider settings in a sub-dialog overlay and enable/disable providers.
+
 ## Enabled providers
 
-Enabled providers are currently determined by the registry defaults, with an optional environment override:
+Enabled providers are determined by saved extension settings.
 
-```bash
-PI_SUBSCRIPTION_METER_PROVIDERS=openrouter,anthropic
+The extension stores its settings in the Pi agent directory using the documented Pi helper for resolving that path (`getAgentDir()`), and writes:
+
+```text
+~/.pi/agent/subscription-meter.json
 ```
 
-After changing the env var, reload the extension/session so the provider tabs refresh.
+If `PI_CODING_AGENT_DIR` is set, Pi’s configured agent directory override is respected automatically.
+
+Use the in-app settings overlay opened with `s` from `/subscriptions` to update provider enablement.
 
 ## Planned package shape
 

@@ -6,12 +6,14 @@ interface SubscriptionsDialogOptions {
   providers: SubscriptionProviderDefinition[];
   theme: Theme;
   onClose: () => void;
+  onOpenSettings: () => void;
 }
 
 export class SubscriptionsDialog {
-  private readonly providers: SubscriptionProviderDefinition[];
+  private providers: SubscriptionProviderDefinition[];
   private readonly theme: Theme;
   private readonly onClose: () => void;
+  private readonly onOpenSettings: () => void;
   private activeIndex = 0;
   private cachedWidth?: number;
   private cachedLines?: string[];
@@ -20,11 +22,27 @@ export class SubscriptionsDialog {
     this.providers = options.providers;
     this.theme = options.theme;
     this.onClose = options.onClose;
+    this.onOpenSettings = options.onOpenSettings;
+  }
+
+  setProviders(providers: SubscriptionProviderDefinition[]): void {
+    this.providers = [...providers];
+    if (this.providers.length === 0) {
+      this.activeIndex = 0;
+    } else if (this.activeIndex >= this.providers.length) {
+      this.activeIndex = this.providers.length - 1;
+    }
+    this.invalidate();
   }
 
   handleInput(data: string): void {
     if (matchesKey(data, Key.escape) || matchesKey(data, "q") || matchesKey(data, Key.ctrl("c"))) {
       this.onClose();
+      return;
+    }
+
+    if (matchesKey(data, "s")) {
+      this.onOpenSettings();
       return;
     }
 
@@ -149,13 +167,13 @@ export class SubscriptionsDialog {
       addWrappedBlock(
         this.theme.fg(
           "warning",
-          "No providers are currently enabled. Set PI_SUBSCRIPTION_METER_PROVIDERS to a comma-separated list such as openrouter,anthropic and reload the extension.",
+          "No providers are currently enabled. Press s to open provider settings and enable one or more subscription tabs.",
         ),
       );
     }
 
     addBlankLine();
-    addContentLine(this.theme.fg("dim", " Tab/←→ switch • Home/End jump • Esc close"));
+    addContentLine(this.theme.fg("dim", " Tab/←→ switch • Home/End jump • s settings • Esc close"));
     addBorder("└", "─", "┘");
 
     this.cachedWidth = width;
