@@ -1,6 +1,6 @@
 # Publish package version 0.1.0 to npm
 
-- **Status:** in progress
+- **Status:** blocked
 - **Date:** 2026-06-29
 - **Owner:** agent
 
@@ -10,16 +10,16 @@ Prepare and publish version `0.1.0` of this package to npm, ensuring agent-only 
 
 ## Checklist
 
-- [ ] Inspect current package metadata, lockfile state, and publish-related config.
-- [ ] Confirm npm auth is available and verify whether version `0.1.0` is publishable.
-- [ ] Exclude `.agents` and other agent-only files from the npm package via `.npmignore` or equivalent.
-- [ ] Update `package.json` version to `0.1.0` if needed.
-- [ ] Run `npm install` to refresh the lockfile.
-- [ ] Validate the publish tarball contents.
-- [ ] Commit the publish-prep changes if needed.
-- [ ] Create and push the `v0.1.0` git tag.
+- [x] Inspect current package metadata, lockfile state, and publish-related config.
+- [x] Confirm whether version `0.1.0` is publishable; npm auth/scope remains blocked.
+- [x] Exclude `.agents` and other agent-only files from the npm package via `.npmignore` or equivalent.
+- [x] Update `package.json` version to `0.1.0` if needed. (It was already `0.1.0`.)
+- [x] Run `npm install` to refresh the lockfile.
+- [x] Validate the publish tarball contents.
+- [x] Commit the publish-prep changes if needed.
+- [x] Create and push the `v0.1.0` git tag.
 - [ ] Publish version `0.1.0` to npm.
-- [ ] Record outcomes and any follow-up notes in this plan.
+- [x] Record outcomes and any follow-up notes in this plan.
 
 ## Detailed implementation plan
 
@@ -48,3 +48,30 @@ Prepare and publish version `0.1.0` of this package to npm, ensuring agent-only 
 - `git status`
 - `git tag --list v0.1.0`
 - `npm publish` success output
+
+## Outcome summary
+
+What succeeded:
+- confirmed the package is already at version `0.1.0`
+- removed agent-only files from the published package by:
+  - removing `.agents` and `AGENTS.md` from `package.json.files`
+  - adding `.npmignore` entries for `.agents/` and `AGENTS.md`
+- ran `npm install` (no dependency or lockfile changes were needed)
+- verified the publish tarball with `npm pack --dry-run`
+- committed the publish-prep changes
+- pushed `main`
+- created and pushed git tag `v0.1.0`
+
+What failed:
+- `npm whoami` returned `401 Unauthorized`
+- `npm publish --access public` returned `404 Not Found - PUT https://registry.npmjs.org/@championswimmer%2fpi-subscription-meter`
+
+Interpretation:
+- the repo is prepared correctly for publishing, but npm publishing is currently blocked by registry auth and/or ownership of the `@championswimmer` scope
+- the package does not currently exist on npm, so the failure is not due to a duplicate version
+
+Likely next step outside the repo:
+- authenticate npm with an account that owns the `@championswimmer` scope, then rerun:
+  - `npm whoami`
+  - `npm publish --access public`
+- if the intended npm scope is different from `@championswimmer`, update `package.json.name` before publishing a first release under that scope
