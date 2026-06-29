@@ -28,8 +28,6 @@
   ],
   "files": [
     "src",
-    ".agents",
-    "AGENTS.md",
     "README.md"
   ],
   "engines": {

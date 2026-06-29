@@ -98,6 +98,9 @@ function getNowMarkerColor(
   return "accent";
 }
 
+const STABLE_DIALOG_MIN_TOTAL_LINES = 32;
+const FOOTER_LINE_COUNT = 3;
+
 export class SubscriptionsDialog {
   private providers: SubscriptionProviderDefinition[];
   private readonly theme: Theme;
@@ -488,6 +491,10 @@ export class SubscriptionsDialog {
           "No providers are currently enabled. Press s to open provider settings and enable one or more subscription tabs.",
         ),
       );
+      addBlankLine();
+    }
+
+    while (lines.length < STABLE_DIALOG_MIN_TOTAL_LINES - FOOTER_LINE_COUNT) {
       addBlankLine();
     }
 
