@@ -13,7 +13,7 @@ Bootstrap this repository as the foundation for a Pi extension that will show AP
 - [x] Initialize the repository with git, npm, TypeScript, and a placeholder Pi extension entrypoint.
 - [x] Add `AGENTS.md` and create the `.agents/` directory structure.
 - [x] Add a planning skill that requires plans in `.agents/plans/` before implementation work.
-- [ ] Add a provider research skill documenting subscription usage endpoints and token-based auth flows.
+- [x] Add a provider research skill documenting subscription usage endpoints and token-based auth flows.
 - [ ] Create the public GitHub repository `championswimmer/pi-subscription-meter` and push the local history.
 
 ## Detailed implementation plan
