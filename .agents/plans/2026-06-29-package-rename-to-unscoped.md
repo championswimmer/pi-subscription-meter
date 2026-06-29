@@ -1,6 +1,6 @@
 # Rename npm package to unscoped `pi-subscription-meter`
 
-- **Status:** in progress
+- **Status:** blocked on npm OTP
 - **Date:** 2026-06-29
 - **Owner:** agent
 
@@ -10,16 +10,16 @@ Move the published package away from the `@championswimmer` scope and publish it
 
 ## Checklist
 
-- [ ] Inspect current package metadata and npm publish state for both scoped and unscoped package names.
-- [ ] Confirm whether `pi-subscription-meter` is available on npm.
-- [ ] Determine whether the already-published scoped package can be unpublished or should be deprecated instead.
-- [ ] Update local package metadata from `@championswimmer/pi-subscription-meter` to `pi-subscription-meter`.
-- [ ] Refresh lockfile/package metadata if needed.
-- [ ] Verify the publish tarball still excludes agent-only files.
-- [ ] Commit the rename changes.
+- [x] Inspect current package metadata and npm publish state for both scoped and unscoped package names.
+- [x] Confirm whether `pi-subscription-meter` is available on npm.
+- [x] Determine whether the already-published scoped package can be unpublished or should be deprecated instead.
+- [x] Update local package metadata from `@championswimmer/pi-subscription-meter` to `pi-subscription-meter`.
+- [x] Refresh lockfile/package metadata if needed.
+- [x] Verify the publish tarball still excludes agent-only files.
+- [x] Commit the rename changes.
 - [ ] Publish `pi-subscription-meter` to npm.
 - [ ] Clean up the scoped package via unpublish or deprecate.
-- [ ] Verify the final npm state and record outcomes.
+- [x] Verify the final npm state and record outcomes.
 
 ## Detailed implementation plan
 
@@ -49,3 +49,30 @@ Move the published package away from the `@championswimmer` scope and publish it
 - `npm publish`
 - `npm unpublish` or `npm deprecate`
 - final `npm view` checks for both names
+
+## Outcome summary
+
+What succeeded:
+- verified the scoped package currently exists on npm as `@championswimmer/pi-subscription-meter@0.1.0`
+- verified `pi-subscription-meter` is currently available (npm returned 404/not found for the unscoped name)
+- updated local package metadata from the scoped name to the unscoped name in both `package.json` and `package-lock.json`
+- verified the tarball with `npm pack --dry-run`
+- committed and pushed the rename change to `main`
+
+Current blocker:
+- `npm publish --access public` is blocked by npm 2FA with `EOTP`
+
+Important note about removing the scoped package:
+- npm warns that removing the last published version requires `--force`
+- the scoped package should only be unpublished (or deprecated) after the unscoped package publish succeeds
+
+Suggested next manual commands:
+1. publish the unscoped package:
+   - `npm publish --access public --otp=<code>`
+2. then either unpublish the old scoped package:
+   - `npm unpublish @championswimmer/pi-subscription-meter --force --otp=<code>`
+   or deprecate it instead:
+   - `npm deprecate @championswimmer/pi-subscription-meter@0.1.0 "Moved to pi-subscription-meter"`
+
+Git state:
+- rename commit pushed: `93e9c8e` (`Rename package to unscoped npm name`)
