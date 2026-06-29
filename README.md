@@ -4,16 +4,18 @@ A Pi extension package for surfacing subscription, quota, and usage limits acros
 
 ## Status
 
-Bootstrap/scaffolding only.
+Early framework in place.
 
 This repository currently contains:
 - npm + TypeScript package setup for a Pi extension
-- a placeholder extension entrypoint
+- a `/subscriptions` Pi command
+- a tabbed Pi TUI dialog that renders one tab per enabled provider
+- a pluggable provider registry with initial scaffolds for OpenAI Codex, GitHub Copilot, Anthropic, OpenRouter, and OpenCode
 - repo-level agent instructions in `AGENTS.md`
 - Agent Skills under `.agents/skills/`
-- an initial planning workflow under `.agents/plans/`
+- an implementation planning workflow under `.agents/plans/`
 
-Implementation of the actual subscription meter UI and provider integrations will come next.
+Actual subscription fetching, auth wiring, and live usage meters will come next.
 
 ## Initial scope
 
@@ -36,6 +38,26 @@ This project is intentionally inspired by:
 npm install
 npm run typecheck
 ```
+
+## Current command
+
+Once this extension is loaded in Pi, use:
+
+```text
+/subscriptions
+```
+
+This opens a tabbed dialog showing all currently enabled provider scaffolds.
+
+## Enabled providers
+
+Enabled providers are currently determined by the registry defaults, with an optional environment override:
+
+```bash
+PI_SUBSCRIPTION_METER_PROVIDERS=openrouter,anthropic
+```
+
+After changing the env var, reload the extension/session so the provider tabs refresh.
 
 ## Planned package shape
 

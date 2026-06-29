@@ -1,6 +1,6 @@
 # Subscriptions command framework
 
-- **Status:** in-progress
+- **Status:** complete
 - **Date:** 2026-06-29
 - **Owner:** agent
 
@@ -10,14 +10,14 @@ Create the basic framework for a Pi extension command `/subscriptions` that open
 
 ## Checklist
 
-- [ ] Review Pi extension and TUI APIs relevant to commands and custom dialogs.
-- [ ] Design a provider contract and registry for pluggable subscription providers.
-- [ ] Add scaffold provider definitions for `openai-codex`, `github-copilot`, `anthropic`, `openrouter`, and `opencode`.
-- [ ] Implement a tabbed subscriptions dialog component that renders enabled providers only.
-- [ ] Register a `/subscriptions` command that opens the dialog.
-- [ ] Add minimal enable/disable behavior so the dialog tab count matches enabled providers.
-- [ ] Validate with `npm run typecheck`.
-- [ ] Update this plan to reflect the implemented framework.
+- [x] Review Pi extension and TUI APIs relevant to commands and custom dialogs.
+- [x] Design a provider contract and registry for pluggable subscription providers.
+- [x] Add scaffold provider definitions for `openai-codex`, `github-copilot`, `anthropic`, `openrouter`, and `opencode`.
+- [x] Implement a tabbed subscriptions dialog component that renders enabled providers only.
+- [x] Register a `/subscriptions` command that opens the dialog.
+- [x] Add minimal enable/disable behavior so the dialog tab count matches enabled providers.
+- [x] Validate with `npm run typecheck`.
+- [x] Update this plan to reflect the implemented framework.
 
 ## Detailed implementation plan
 
@@ -31,9 +31,10 @@ Create the basic framework for a Pi extension command `/subscriptions` that open
 
 ## Risks / questions
 
-- Pi TUI may not have a built-in tab widget, so a lightweight custom component may be needed.
+- Pi TUI does not appear to expose a built-in tab widget for this use case, so the current implementation uses a lightweight custom component.
 - We should keep the provider contract minimal now so we do not lock in the wrong data model before usage fetching is implemented.
-- Some providers will ultimately rely on unofficial endpoints, but this framework step should stay fetch-free and UI-focused.
+- Some providers will ultimately rely on unofficial endpoints, but this framework step intentionally stays fetch-free and UI-focused.
+- Provider enablement is currently driven by code defaults plus `PI_SUBSCRIPTION_METER_PROVIDERS`; a richer settings workflow can be added later.
 
 ## Validation
 
@@ -41,3 +42,4 @@ Create the basic framework for a Pi extension command `/subscriptions` that open
 - manually inspect created files for a clear provider registry and dialog separation
 - verify `/subscriptions` command registration exists in the extension entrypoint
 - verify the dialog logic uses only enabled providers for tab rendering
+- verify `opencode` is scaffolded but disabled by default via the registry
