@@ -14,4 +14,9 @@ export const opencodeProvider: SubscriptionProviderDefinition = {
     "Disabled by default because a stable programmatic usage API has not been confirmed.",
     "This tab is still supported by the registry and can be enabled later without changing the dialog framework.",
   ],
+  usageWindows: [
+    { label: "5h", statusLabel: "pending", notches: [25, 50, 75] },
+    { label: "Weekly", statusLabel: "pending", notches: [50, 75] },
+    { label: "Monthly", statusLabel: "pending", notches: [50, 75, 90] },
+  ],
 };

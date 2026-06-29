@@ -2,6 +2,9 @@
 
 This reference captures the current known ways to retrieve subscription, quota, billing, or usage information for the initial provider set.
 
+Detailed endpoint-by-endpoint request/response schema inventory:
+- `.agents/plans/2026-06-29-provider-api-inventory.md`
+
 ## Quick matrix
 
 | Provider | Best documented source | Token type | Stability | Notes |
@@ -85,6 +88,11 @@ There is a product-specific usage endpoint used by existing tooling.
 - `anthropic-beta: oauth-2025-04-20`
 - `Accept: application/json`
 
+**Important auth distinction**
+- a normal `ANTHROPIC_API_KEY` is **not** the same thing as the Claude product OAuth bearer token required here
+- live implementation validation on 2026-06-29 confirmed that presenting `ANTHROPIC_API_KEY` as a bearer token to `/api/oauth/usage` returns `Invalid bearer token`
+- for a personal Claude subscription meter, prefer Pi-managed Claude `/login` auth rather than the standard Anthropic API key
+
 **What it appears to return**
 - 5 hour utilization windows
 - 7 day utilization windows
@@ -112,6 +120,14 @@ OpenAI provides Admin APIs for organization administration and spend/usage analy
 - `GET /organization/usage/completions`
 - other `organization/usage/*` endpoints for embeddings, images, audio, vector stores, file searches, web searches, etc.
 
+**Common documented query params**
+- `start_time`
+- `end_time`
+- `bucket_width`
+- `group_by`
+- `limit`
+- `page`
+
 **Auth**
 - OpenAI **Admin API key**
 - SDKs typically use `adminAPIKey`, or raw HTTP can use `Authorization: Bearer <OPENAI_ADMIN_KEY>`
@@ -119,6 +135,7 @@ OpenAI provides Admin APIs for organization administration and spend/usage analy
 **What it gives**
 - spend by time bucket
 - aggregated usage by API key, project, user, model, line item, and more
+- paginated `data[]` bucket responses with `has_more` / `next_page`
 
 **When to use**
 - API usage dashboards for organizations
@@ -190,12 +207,18 @@ OpenRouter is one of the cleanest providers to support.
 **Auth**
 - `Authorization: Bearer <OPENROUTER_API_KEY>`
 
-**Useful field**
+**Useful fields**
 - `data.total_credits`
+- `data.total_usage`
+
+**Auth note**
+- docs indicate a **management key** is required for `/api/v1/credits`
+- local implementation validation on 2026-06-29 succeeded with the currently configured OpenRouter key and returned `total_credits` + `total_usage`; treat this as observed behavior, while still preferring the docs as the conservative expectation
 
 **Implementation guidance**
-- prefer `/api/v1/key` for a richer meter
-- use `/api/v1/credits` if you only need remaining credit balance
+- use `/api/v1/key` for key-scoped daily / weekly / monthly usage and optional per-key budget data
+- use `/api/v1/credits` to compute total remaining purchased credits as `total_credits - total_usage`
+- for the best end-user OpenRouter tab, combine both endpoints when `/api/v1/credits` is available
 
 ---
 
@@ -274,6 +297,7 @@ GitHub Copilot has both official org/enterprise billing APIs and unofficial end-
 - per-user seat assignment details
 - recent activity telemetry metadata
 - org/enterprise configuration summaries
+- downloadable daily / 28-day metrics reports via `.../copilot/metrics/reports/...`
 
 **Best fit**
 - team/org subscription meters
@@ -304,6 +328,7 @@ Existing quota tools also use internal GitHub Copilot endpoints.
 - entitlements and remaining counters
 - premium interactions / chat / completions windows
 - reset date and overage hints
+- in live validation on 2026-06-29, `premium_interactions` was finite while `chat` was reported as `unlimited` on an `individual_pro` plan
 
 **Stability**
 - treat as **unofficial / internal**

@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { OverlayHandle } from "@earendil-works/pi-tui";
 import { createDefaultSubscriptionProviderRegistry, type SubscriptionProviderId } from "./providers/index.ts";
 import { loadSubscriptionMeterSettings, saveSubscriptionMeterSettings } from "./settings.ts";
 import { ProviderSettingsDialog } from "./ui/provider-settings-dialog.ts";
@@ -6,30 +7,67 @@ import { SubscriptionsDialog } from "./ui/subscriptions-dialog.ts";
 
 export default function (pi: ExtensionAPI) {
   const providerRegistry = createDefaultSubscriptionProviderRegistry();
+  let subscriptionsOverlayHandle: OverlayHandle | null = null;
+  let closeSubscriptionsOverlay: (() => void) | null = null;
 
   pi.registerCommand("subscriptions", {
-    description: "Show subscription providers in a tabbed dialog",
-    handler: async (_args, ctx) => {
+    description: "Show subscription providers in a floating dialog",
+    handler: async (args, ctx) => {
       if (ctx.mode !== "tui") {
         ctx.ui.notify("/subscriptions requires TUI mode", "error");
         return;
       }
 
-      providerRegistry.setEnabledProviders(loadSubscriptionMeterSettings().enabledProviders);
+      const normalizedArgs = args.trim().toLowerCase();
+
+      if (normalizedArgs === "close") {
+        if (closeSubscriptionsOverlay) {
+          closeSubscriptionsOverlay();
+        }
+        return;
+      }
+
+      if (subscriptionsOverlayHandle) {
+        if (!subscriptionsOverlayHandle.isFocused()) {
+          subscriptionsOverlayHandle.focus();
+          ctx.ui.notify("Subscriptions overlay focused.", "info");
+        } else {
+          ctx.ui.notify("Subscriptions overlay is already open and focused.", "info");
+        }
+        return;
+      }
+
+      let currentSettings = loadSubscriptionMeterSettings();
+      providerRegistry.setEnabledProviders(currentSettings.enabledProviders);
 
       let dialog: SubscriptionsDialog | undefined;
       let settingsOverlayOpen = false;
 
-      await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
-        const applyEnabledProviders = (enabledProviderIds: SubscriptionProviderId[]) => {
+      void ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
+        const saveAndApplySettings = (nextSettings: {
+          enabledProviders?: SubscriptionProviderId[];
+          displayMode?: "used" | "remaining";
+          resetTimeDisplayMode?: "absolute" | "relative";
+          showThresholdNotches?: boolean;
+          showNowNotch?: boolean;
+        }) => {
           try {
             const savedSettings = saveSubscriptionMeterSettings({
               version: 1,
-              enabledProviders: enabledProviderIds,
+              enabledProviders: nextSettings.enabledProviders ?? currentSettings.enabledProviders,
+              displayMode: nextSettings.displayMode ?? currentSettings.displayMode,
+              resetTimeDisplayMode: nextSettings.resetTimeDisplayMode ?? currentSettings.resetTimeDisplayMode,
+              showThresholdNotches: nextSettings.showThresholdNotches ?? currentSettings.showThresholdNotches,
+              showNowNotch: nextSettings.showNowNotch ?? currentSettings.showNowNotch,
             });
 
+            currentSettings = savedSettings;
             providerRegistry.setEnabledProviders(savedSettings.enabledProviders);
             dialog?.setProviders(providerRegistry.getEnabledProviders());
+            dialog?.setDisplayMode(savedSettings.displayMode);
+            dialog?.setResetTimeDisplayMode(savedSettings.resetTimeDisplayMode);
+            dialog?.setShowThresholdNotches(savedSettings.showThresholdNotches);
+            dialog?.setShowNowNotch(savedSettings.showNowNotch);
             tui.requestRender();
           } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
@@ -51,8 +89,28 @@ export default function (pi: ExtensionAPI) {
                   theme: overlayTheme,
                   providers: providerRegistry.getAllProviders(),
                   enabledProviderIds: providerRegistry.getEnabledProviders().map((provider) => provider.id),
+                  displayMode: currentSettings.displayMode,
+                  resetTimeDisplayMode: currentSettings.resetTimeDisplayMode,
+                  showThresholdNotches: currentSettings.showThresholdNotches,
+                  showNowNotch: currentSettings.showNowNotch,
                   onEnabledProvidersChange: (enabledProviderIds) => {
-                    applyEnabledProviders(enabledProviderIds);
+                    saveAndApplySettings({ enabledProviders: enabledProviderIds });
+                    overlayTui.requestRender();
+                  },
+                  onDisplayModeChange: (displayMode) => {
+                    saveAndApplySettings({ displayMode });
+                    overlayTui.requestRender();
+                  },
+                  onResetTimeDisplayModeChange: (resetTimeDisplayMode) => {
+                    saveAndApplySettings({ resetTimeDisplayMode });
+                    overlayTui.requestRender();
+                  },
+                  onShowThresholdNotchesChange: (showThresholdNotches) => {
+                    saveAndApplySettings({ showThresholdNotches });
+                    overlayTui.requestRender();
+                  },
+                  onShowNowNotchChange: (showNowNotch) => {
+                    saveAndApplySettings({ showNowNotch });
                     overlayTui.requestRender();
                   },
                   onClose: () => overlayDone(undefined),
@@ -93,11 +151,18 @@ export default function (pi: ExtensionAPI) {
             });
         };
 
+        closeSubscriptionsOverlay = () => done(undefined);
+
         dialog = new SubscriptionsDialog({
           providers: providerRegistry.getEnabledProviders(),
+          displayMode: currentSettings.displayMode,
+          resetTimeDisplayMode: currentSettings.resetTimeDisplayMode,
+          showThresholdNotches: currentSettings.showThresholdNotches,
+          showNowNotch: currentSettings.showNowNotch,
           theme,
           onClose: () => done(undefined),
           onOpenSettings: openSettings,
+          requestRender: () => tui.requestRender(),
         });
 
         return {
@@ -112,7 +177,33 @@ export default function (pi: ExtensionAPI) {
             tui.requestRender();
           },
         };
-      });
+      }, {
+        overlay: true,
+        overlayOptions: {
+          anchor: "center",
+          width: "75%",
+          minWidth: 44,
+          maxHeight: "85%",
+          margin: 2,
+        },
+        onHandle: (handle) => {
+          subscriptionsOverlayHandle = handle;
+        },
+      })
+        .catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          ctx.ui.notify(`Failed to open subscriptions overlay: ${message}`, "error");
+        })
+        .finally(() => {
+          dialog?.dispose();
+          subscriptionsOverlayHandle = null;
+          closeSubscriptionsOverlay = null;
+        });
+
+      ctx.ui.notify(
+        "Subscriptions overlay opened. It keeps keyboard focus, while agent/tool progress can continue underneath. Run /subscriptions close to dismiss.",
+        "info",
+      );
     },
   });
 }

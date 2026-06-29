@@ -60,4 +60,9 @@ export function createDefaultSubscriptionProviderRegistry(
 }
 
 export { DEFAULT_PROVIDERS as subscriptionProviders };
-export type { SubscriptionProviderDefinition, SubscriptionProviderId } from "./types.ts";
+export type {
+  SubscriptionProviderDefinition,
+  SubscriptionProviderId,
+  SubscriptionProviderRuntimeState,
+  SubscriptionUsageWindowDefinition,
+} from "./types.ts";
