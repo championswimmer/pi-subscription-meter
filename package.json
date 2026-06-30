@@ -1,10 +1,10 @@
 {
   "name": "pi-subscription-meter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pi extension scaffolding for showing subscription and quota usage across AI providers.",
   "type": "module",
   "private": false,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/championswimmer/pi-subscription-meter.git"
