@@ -166,7 +166,11 @@ function buildOpenRouterUsageWindows(
   if (totalCredits != null && totalCredits > 0) {
     const remainingCredits = Math.max(0, totalCredits - totalUsage);
     windows.push({
-      label: "Credits Remaining",
+      // The credits pool is not a time-based window. The bar fills in
+      // proportion to credits used: 100% = total credits, x% = used so far.
+      // No `resetAt` / `pacePercent` is set, so no "now" notch is rendered.
+      label: "Credits",
+      usedPercent: safePercent(totalUsage, totalCredits),
       statusLabel: formatCurrency(remainingCredits),
       detailLabel: `${formatCurrency(totalUsage)}/${formatCurrency(totalCredits)}`,
       notches: [50, 75, 90],
@@ -342,6 +346,7 @@ export const openRouterProvider: SubscriptionProviderDefinition = {
     "Daily, weekly, and monthly rows are tracking windows reported by the active key.",
   ],
   usageWindows: [
+    { label: "Credits", statusLabel: "loading…", notches: [50, 75, 90] },
     { label: "Monthly Budget", statusLabel: "loading…", notches: [50, 75, 90] },
     { label: "Daily", statusLabel: "loading…", notches: [50] },
     { label: "Weekly", statusLabel: "loading…", notches: [50, 75] },
