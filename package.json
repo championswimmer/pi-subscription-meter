@@ -1,6 +1,6 @@
 {
   "name": "pi-subscription-meter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Pi extension scaffolding for showing subscription and quota usage across AI providers.",
   "type": "module",
   "private": false,
