@@ -2,6 +2,9 @@
 
 A Pi extension package for surfacing subscription, quota, and usage limits across AI providers.
 
+<img width="973" height="704" alt="image" src="https://github.com/user-attachments/assets/e54f71ac-fa59-438a-9936-61201deec457" />
+
+
 ## Status
 
 Early framework in place.
