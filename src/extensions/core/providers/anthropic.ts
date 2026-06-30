@@ -70,29 +70,6 @@ function formatCurrency(value: number, currency = "USD"): string {
   }).format(value);
 }
 
-function formatUtcDate(value: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  }).format(value);
-}
-
-function formatDuration(seconds: number): string {
-  const totalSeconds = Math.max(0, Math.round(seconds));
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
-  return parts.slice(0, 2).join(" ");
-}
 
 function authSourceLabel(authStatus: AuthStatus): string | undefined {
   if (authStatus.source === "environment") {
@@ -144,7 +121,6 @@ function createAnthropicPercentWindow(
   label: string,
   entry: AnthropicUsageEntry | undefined,
   windowSeconds: number,
-  description: string,
 ): SubscriptionUsageWindowDefinition | undefined {
   const usedPercent = clampPercent(parseNumber(entry?.utilization) ?? 0);
   if (!entry || parseNumber(entry.utilization) == null) {
@@ -152,22 +128,20 @@ function createAnthropicPercentWindow(
   }
 
   const resetAt = parseDateish(entry.resets_at);
-  const detailParts = [`${formatPercent(usedPercent)} used of the current ${description}`];
+  let detailLabel: string | undefined;
   let pacePercent: number | undefined;
 
   if (resetAt) {
     const remainingSeconds = Math.max(0, Math.round((resetAt.getTime() - Date.now()) / 1000));
     const elapsedSeconds = Math.max(0, windowSeconds - remainingSeconds);
     pacePercent = clampPercent((elapsedSeconds / windowSeconds) * 100);
-    detailParts.push(`${formatDuration(remainingSeconds)} left`);
-    detailParts.push(`${formatPercent(pacePercent)} of the time window elapsed`);
-    detailParts.push(`resets ${formatUtcDate(resetAt)} UTC`);
+    detailLabel = `${formatPercent(pacePercent)} elapsed`;
   }
 
   return {
     label,
     usedPercent,
-    detailLabel: detailParts.join(" • "),
+    detailLabel,
     resetAt,
     pacePercent,
     notches: [25, 50, 75],
@@ -200,10 +174,8 @@ function createAnthropicExtraWindow(extra: AnthropicExtraUsage | undefined): Sub
     label: `Extra (${currency})`,
     usedPercent,
     detailLabel: [
-      `${formatCurrency(usedValue, currency)} used of ${formatCurrency(limitValue, currency)}`,
-      `${formatDuration(remainingSeconds)} left`,
-      `${formatPercent(pacePercent)} of the time window elapsed`,
-      `resets ${formatUtcDate(resetAt)} UTC`,
+      `${formatCurrency(usedValue, currency)}/${formatCurrency(limitValue, currency)}`,
+      `${formatPercent(pacePercent)} elapsed`,
     ].join(" • "),
     resetAt,
     pacePercent,
@@ -233,11 +205,11 @@ function parseAnthropicWindows(response: AnthropicUsageResponse): SubscriptionUs
   const windows: SubscriptionUsageWindowDefinition[] = [];
 
   const baseWindows = [
-    createAnthropicPercentWindow("5h", response.five_hour, FIVE_HOUR_SECONDS, "5-hour Claude limit"),
-    createAnthropicPercentWindow("7d", response.seven_day, SEVEN_DAY_SECONDS, "7-day Claude limit"),
-    createAnthropicPercentWindow("7d Sonnet", response.seven_day_sonnet, SEVEN_DAY_SECONDS, "7-day Sonnet limit"),
-    createAnthropicPercentWindow("7d Opus", response.seven_day_omelette, SEVEN_DAY_SECONDS, "7-day Opus limit"),
-    createAnthropicPercentWindow("7d Opus (legacy)", response.seven_day_opus, SEVEN_DAY_SECONDS, "7-day Opus limit"),
+    createAnthropicPercentWindow("5h", response.five_hour, FIVE_HOUR_SECONDS),
+    createAnthropicPercentWindow("7d", response.seven_day, SEVEN_DAY_SECONDS),
+    createAnthropicPercentWindow("7d Sonnet", response.seven_day_sonnet, SEVEN_DAY_SECONDS),
+    createAnthropicPercentWindow("7d Opus", response.seven_day_omelette, SEVEN_DAY_SECONDS),
+    createAnthropicPercentWindow("7d Opus (legacy)", response.seven_day_opus, SEVEN_DAY_SECONDS),
   ].filter((window): window is SubscriptionUsageWindowDefinition => !!window);
 
   windows.push(...baseWindows);
