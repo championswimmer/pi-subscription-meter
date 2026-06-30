@@ -1,5 +1,5 @@
 import { DynamicBorder, type Theme, getSettingsListTheme } from "@earendil-works/pi-coding-agent";
-import { Container, type SettingItem, SettingsList, Text } from "@earendil-works/pi-tui";
+import { Container, type SettingItem, SettingsList, Text, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { SubscriptionProviderDefinition, SubscriptionProviderId } from "../providers/index.ts";
 import type { SubscriptionResetTimeDisplayMode, SubscriptionUsageDisplayMode } from "../settings.ts";
 
@@ -28,6 +28,7 @@ export class ProviderSettingsDialog {
   private readonly container: Container;
   private readonly settingsList: SettingsList;
   private readonly providers: SubscriptionProviderDefinition[];
+  private readonly theme: Theme;
   private enabledProviderIds: Set<SubscriptionProviderId>;
   private displayMode: SubscriptionUsageDisplayMode;
   private resetTimeDisplayMode: SubscriptionResetTimeDisplayMode;
@@ -41,6 +42,7 @@ export class ProviderSettingsDialog {
 
   constructor(options: ProviderSettingsDialogOptions) {
     this.providers = options.providers;
+    this.theme = options.theme;
     this.enabledProviderIds = new Set(options.enabledProviderIds);
     this.displayMode = options.displayMode;
     this.resetTimeDisplayMode = options.resetTimeDisplayMode;
@@ -135,7 +137,7 @@ export class ProviderSettingsDialog {
 
     this.container.addChild(this.settingsList);
     this.container.addChild(
-      new Text(options.theme.fg("dim", "↑↓ navigate • ←→ toggle • / search • esc close")),
+      new Text(options.theme.fg("dim", "↑↓ navigate • / search • esc close")),
     );
     this.container.addChild(new DynamicBorder((text) => options.theme.fg("accent", text)));
   }
@@ -147,7 +149,34 @@ export class ProviderSettingsDialog {
   }
 
   render(width: number): string[] {
-    return this.container.render(width);
+    const innerWidth = Math.max(10, width - 2);
+    const rendered = this.container.render(innerWidth);
+
+    if (rendered.length === 0) {
+      return [];
+    }
+
+    return rendered.map((line, index) => {
+      if (index === 0) {
+        return this.renderBorderLine("┌", "┐", innerWidth);
+      }
+
+      if (index === rendered.length - 1) {
+        return this.renderBorderLine("└", "┘", innerWidth);
+      }
+
+      const truncated = truncateToWidth(line, innerWidth, "");
+      const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(truncated)));
+      return `${this.renderSideBorder()}${truncated}${padding}${this.renderSideBorder()}`;
+    });
+  }
+
+  private renderBorderLine(left: string, right: string, innerWidth: number): string {
+    return this.theme.fg("accent", `${left}${"─".repeat(innerWidth)}${right}`);
+  }
+
+  private renderSideBorder(): string {
+    return this.theme.fg("accent", "│");
   }
 
   invalidate(): void {

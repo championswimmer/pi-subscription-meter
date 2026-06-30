@@ -445,26 +445,32 @@ export class SubscriptionsDialog {
             : undefined;
           const tone = usageTone(displayPercent, this.displayMode);
           const nowMarkerColor = getNowMarkerColor(usageWindow.usedPercent, usageWindow.pacePercent);
-          const statusText = displayPercent == null
-            ? this.theme.fg(tone, usageWindow.statusLabel ?? "pending")
-            : this.theme.fg(
-                tone,
-                this.displayMode === "remaining"
-                  ? `${Math.round(displayPercent)}% left`
-                  : `${Math.round(displayPercent)}% used`,
-              );
+          const statusText = usageWindow.statusLabel
+            ? this.theme.fg(tone, usageWindow.statusLabel)
+            : displayPercent == null
+              ? this.theme.fg(tone, "pending")
+              : this.theme.fg(
+                  tone,
+                  this.displayMode === "remaining"
+                    ? `${Math.round(displayPercent)}% left`
+                    : `${Math.round(displayPercent)}% used`,
+                );
+          const shouldRenderBar = displayPercent != null || thresholdNotches.length > 0 || timelineNotch != null;
 
           addCompactLine(this.theme.fg("text", usageWindow.label), statusText);
-          addContentLine(` ${renderProgressBar(this.theme, {
-            width: barWidth,
-            usedPercent: displayPercent ?? 0,
-            notches: thresholdNotches,
-            markerNotches: timelineNotch == null ? undefined : [timelineNotch],
-            filledColor: tone,
-            emptyColor: "dim",
-            notchColor: "muted",
-            markerColor: nowMarkerColor,
-          })}`);
+
+          if (shouldRenderBar) {
+            addContentLine(` ${renderProgressBar(this.theme, {
+              width: barWidth,
+              usedPercent: displayPercent ?? 0,
+              notches: thresholdNotches,
+              markerNotches: timelineNotch == null ? undefined : [timelineNotch],
+              filledColor: tone,
+              emptyColor: "dim",
+              notchColor: "muted",
+              markerColor: nowMarkerColor,
+            })}`);
+          }
 
           if (usageWindow.detailLabel) {
             addWrappedBlock(this.theme.fg("dim", usageWindow.detailLabel), " ");

@@ -200,10 +200,6 @@ export default function (pi: ExtensionAPI) {
           closeSubscriptionsOverlay = null;
         });
 
-      ctx.ui.notify(
-        "Subscriptions overlay opened. It keeps keyboard focus, while agent/tool progress can continue underneath. Run /subscriptions close to dismiss.",
-        "info",
-      );
     },
   });
 }
