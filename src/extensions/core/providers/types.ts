@@ -3,6 +3,7 @@ export type SubscriptionProviderId =
   | "github-copilot"
   | "anthropic"
   | "openrouter"
+  | "kilocode"
   | "opencode";
 
 export type SubscriptionProviderStability = "official" | "unofficial" | "mixed" | "unknown";
