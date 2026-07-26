@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { getPiAgentDir } from "./auth.ts";
 import { getDefaultEnabledProviderIds, subscriptionProviders, type SubscriptionProviderId } from "./providers/index.ts";
 
 export type SubscriptionUsageDisplayMode = "used" | "remaining";
@@ -56,7 +56,7 @@ function getDefaultSettings(): SubscriptionMeterSettings {
 }
 
 export function getSubscriptionMeterSettingsPath(): string {
-  return join(getAgentDir(), SETTINGS_FILE_NAME);
+  return join(getPiAgentDir(), SETTINGS_FILE_NAME);
 }
 
 export function loadSubscriptionMeterSettings(): SubscriptionMeterSettings {
@@ -97,7 +97,7 @@ export function saveSubscriptionMeterSettings(settings: SubscriptionMeterSetting
   };
 
   const settingsPath = getSubscriptionMeterSettingsPath();
-  const agentDir = getAgentDir();
+  const agentDir = getPiAgentDir();
   const tempPath = `${settingsPath}.tmp`;
 
   mkdirSync(agentDir, { recursive: true });

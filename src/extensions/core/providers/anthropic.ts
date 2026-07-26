@@ -1,4 +1,4 @@
-import { AuthStorage, type AuthStatus } from "@earendil-works/pi-coding-agent";
+import { createSubscriptionAuthStorage, type SubscriptionAuthStatus } from "../auth.ts";
 import type {
   SubscriptionProviderDefinition,
   SubscriptionProviderRuntimeState,
@@ -71,7 +71,7 @@ function formatCurrency(value: number, currency = "USD"): string {
 }
 
 
-function authSourceLabel(authStatus: AuthStatus): string | undefined {
+function authSourceLabel(authStatus: SubscriptionAuthStatus): string | undefined {
   if (authStatus.source === "environment") {
     return authStatus.label ?? "environment";
   }
@@ -241,7 +241,7 @@ function buildStatusLine(windows: SubscriptionUsageWindowDefinition[]): string {
 }
 
 export async function loadAnthropicRuntimeState(): Promise<SubscriptionProviderRuntimeState> {
-  const authStorage = AuthStorage.create();
+  const authStorage = createSubscriptionAuthStorage();
   const authStatus = authStorage.getAuthStatus("anthropic");
   const accessToken = await authStorage.getApiKey("anthropic");
 

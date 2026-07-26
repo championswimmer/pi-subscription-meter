@@ -1,4 +1,4 @@
-import { AuthStorage, type AuthStatus } from "@earendil-works/pi-coding-agent";
+import { createSubscriptionAuthStorage, type SubscriptionAuthStatus } from "../auth.ts";
 import type {
   SubscriptionProviderDefinition,
   SubscriptionProviderRuntimeState,
@@ -110,7 +110,7 @@ function nextUtcMonthStart(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
 }
 
-function authSourceLabel(authStatus: AuthStatus): string | undefined {
+function authSourceLabel(authStatus: SubscriptionAuthStatus): string | undefined {
   if (authStatus.source === "environment") {
     return authStatus.label ?? "environment";
   }
@@ -234,7 +234,7 @@ function buildOpenRouterUsageWindows(
 }
 
 export async function loadOpenRouterRuntimeState(): Promise<SubscriptionProviderRuntimeState> {
-  const authStorage = AuthStorage.create();
+  const authStorage = createSubscriptionAuthStorage();
   const authStatus = authStorage.getAuthStatus("openrouter");
   const apiKey = await authStorage.getApiKey("openrouter");
 

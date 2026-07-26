@@ -1,5 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { AuthStorage, type AuthStatus } from "@earendil-works/pi-coding-agent";
+import {
+  createSubscriptionAuthStorage,
+  type SubscriptionAuthStatus,
+  type SubscriptionAuthStorage,
+} from "../auth.ts";
 import type {
   SubscriptionProviderDefinition,
   SubscriptionProviderRuntimeState,
@@ -87,7 +91,7 @@ function formatPercent(percent: number | undefined): string {
   return `${Math.round(percent ?? 0)}%`;
 }
 
-function authSourceLabel(authStatus: AuthStatus): string | undefined {
+function authSourceLabel(authStatus: SubscriptionAuthStatus): string | undefined {
   if (authStatus.source === "environment") {
     return authStatus.label ?? "environment";
   }
@@ -180,7 +184,7 @@ function ghCliToken(): string | undefined {
   }
 }
 
-function githubOAuthToken(authStorage: AuthStorage): string | undefined {
+function githubOAuthToken(authStorage: SubscriptionAuthStorage): string | undefined {
   const credential = authStorage.get("github-copilot") as Record<string, unknown> | undefined;
   if (credential?.type !== "oauth") {
     return undefined;
@@ -214,7 +218,7 @@ async function tryUserEndpointWithAuthHeader(authHeader: string): Promise<GitHub
   return fetchCopilotJson<GitHubCopilotUsageResponse>(COPILOT_USER_URL, authHeader);
 }
 
-async function fetchGitHubCopilotUsage(authStorage: AuthStorage): Promise<GitHubCopilotFetchResult> {
+async function fetchGitHubCopilotUsage(authStorage: SubscriptionAuthStorage): Promise<GitHubCopilotFetchResult> {
   const storedOAuthToken = githubOAuthToken(authStorage);
   const providerAccessToken = await authStorage.getApiKey("github-copilot");
   const cliToken = ghCliToken();
@@ -431,7 +435,7 @@ function buildStatusLine(windows: SubscriptionUsageWindowDefinition[]): string {
 }
 
 export async function loadGitHubCopilotRuntimeState(): Promise<SubscriptionProviderRuntimeState> {
-  const authStorage = AuthStorage.create();
+  const authStorage = createSubscriptionAuthStorage();
   const authStatus = authStorage.getAuthStatus("github-copilot");
 
   try {

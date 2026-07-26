@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { AuthStorage } from "@earendil-works/pi-coding-agent";
+import { createSubscriptionAuthStorage, type SubscriptionAuthStorage } from "../auth.ts";
 import type {
   SubscriptionProviderDefinition,
   SubscriptionProviderRuntimeState,
@@ -194,7 +194,7 @@ function firstPresentEnv(names: string[]): { value?: string; name?: string } {
   return {};
 }
 
-function resolveKiloAuth(authStorage: AuthStorage): KiloResolvedAuth {
+function resolveKiloAuth(authStorage: SubscriptionAuthStorage): KiloResolvedAuth {
   const piKilocode = parsePiCredential(
     authStorage.get("kilocode") as Record<string, unknown> | undefined,
     "Pi auth.json (kilocode)",
@@ -345,7 +345,7 @@ function buildKiloUsageWindows(
 }
 
 export async function loadKiloCodeRuntimeState(): Promise<SubscriptionProviderRuntimeState> {
-  const authStorage = AuthStorage.create();
+  const authStorage = createSubscriptionAuthStorage();
   const resolvedAuth = resolveKiloAuth(authStorage);
 
   if (!resolvedAuth.accessToken) {

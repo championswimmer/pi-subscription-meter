@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { AuthStorage, type AuthStatus } from "@earendil-works/pi-coding-agent";
+import { createSubscriptionAuthStorage, type SubscriptionAuthStatus, type SubscriptionAuthStorage } from "../auth.ts";
 import type {
   SubscriptionProviderDefinition,
   SubscriptionProviderRuntimeState,
@@ -132,7 +132,7 @@ function formatPercent(percent: number | undefined): string {
   return `${Math.round(percent ?? 0)}%`;
 }
 
-function authSourceLabel(authStatus: AuthStatus): string | undefined {
+function authSourceLabel(authStatus: SubscriptionAuthStatus): string | undefined {
   if (authStatus.source === "environment") {
     return authStatus.label ?? "environment";
   }
@@ -152,7 +152,7 @@ function authSourceLabel(authStatus: AuthStatus): string | undefined {
   return undefined;
 }
 
-function resolveCodexAccountId(authStorage: AuthStorage): AccountResolution {
+function resolveCodexAccountId(authStorage: SubscriptionAuthStorage): AccountResolution {
   const credential = authStorage.get("openai-codex") as Record<string, unknown> | undefined;
   const storedAccountId =
     typeof credential?.accountId === "string"
@@ -335,7 +335,7 @@ function buildStatusLine(sessionWindow?: SubscriptionUsageWindowDefinition, week
 }
 
 export async function loadOpenAiCodexRuntimeState(): Promise<SubscriptionProviderRuntimeState> {
-  const authStorage = AuthStorage.create();
+  const authStorage = createSubscriptionAuthStorage();
   const authStatus = authStorage.getAuthStatus("openai-codex");
   const accessToken = await authStorage.getApiKey("openai-codex");
   const accountResolution = resolveCodexAccountId(authStorage);

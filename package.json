@@ -1,6 +1,6 @@
 {
   "name": "pi-subscription-meter",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Pi extension scaffolding for showing subscription and quota usage across AI providers.",
   "type": "module",
   "private": false,
@@ -48,10 +48,10 @@
     ]
   },
   "devDependencies": {
-    "@earendil-works/pi-ai": "^0.80.2",
-    "@earendil-works/pi-coding-agent": "^0.80.2",
-    "@earendil-works/pi-tui": "^0.80.2",
-    "@types/node": "^26.0.1",
-    "typescript": "^6.0.3"
+    "@earendil-works/pi-ai": "^0.80.10",
+    "@earendil-works/pi-coding-agent": "^0.80.10",
+    "@earendil-works/pi-tui": "^0.80.10",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
   }
 }
