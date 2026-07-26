@@ -431,7 +431,7 @@ export const kiloCodeProvider: SubscriptionProviderDefinition = {
   id: "kilocode",
   label: "Kilo Code",
   shortLabel: "Kilo",
-  enabledByDefault: true,
+  enabledByDefault: false,
   implementationStatus: "implemented",
   description: "Live Kilo Gateway balance and credit status for the current account.",
   authHint: "Reads local Kilo auth, Pi auth, or KILO_API_KEY when available.",
