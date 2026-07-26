@@ -166,9 +166,15 @@ Existing quota tools use an internal ChatGPT endpoint for user subscription usag
 - one known local source is `~/.codex/auth.json`
 
 **What it appears to return**
-- primary and secondary rate-limit windows, often matching 5h / 7d style usage
+- percentage-based rate-limit windows from the ChatGPT/Codex product meter
 - credits balance
 - spend-control flags
+
+**Observed response nuances**
+- live validation on 2026-07-26 for a Plus account returned `rate_limit.primary_window` with `used_percent`, `reset_at`, `reset_after_seconds`, and `limit_window_seconds: 604800` (7 days)
+- that same live response returned `secondary_window: null`, so the endpoint currently may expose a weekly window only
+- older reverse-engineered samples and some third-party tools still show both 5h/session and 7d/weekly windows, so treat the schema as account- and rollout-dependent
+- do not assume `primary_window` always means 5-hour/session; inspect `limit_window_seconds` when present
 
 **Stability**
 - treat as **unofficial / reverse-engineered**
@@ -177,6 +183,7 @@ Existing quota tools use an internal ChatGPT endpoint for user subscription usag
 **Important distinction**
 - OpenAI’s official Admin APIs are for org usage and spend
 - ChatGPT / Codex end-user subscription counters appear to require internal product endpoints instead
+- official Codex pricing docs say the underlying meter is driven by token/credit consumption, so the percentage shown by `wham/usage` is not a simple message count and can vary with model, context size, reasoning, tool use, caching, and cloud vs local execution
 
 ---
 

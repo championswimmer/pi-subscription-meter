@@ -81,6 +81,8 @@ interface AccountResolution {
   source?: string;
 }
 
+type CodexWindowKind = "session" | "weekly";
+
 interface CodexWindowParseResult {
   sessionWindow?: SubscriptionUsageWindowDefinition;
   weeklyWindow?: SubscriptionUsageWindowDefinition;
@@ -130,6 +132,28 @@ function usedPercentFromLimit(limit: CodexUsageLimitWindow | CodexUsageArrayLimi
 
 function formatPercent(percent: number | undefined): string {
   return `${Math.round(percent ?? 0)}%`;
+}
+
+function formatWindowDuration(windowSeconds: number): string {
+  if (windowSeconds % (24 * 60 * 60) === 0) {
+    const days = Math.round(windowSeconds / (24 * 60 * 60));
+    return `${days} day${days === 1 ? "" : "s"}`;
+  }
+
+  if (windowSeconds % (60 * 60) === 0) {
+    const hours = Math.round(windowSeconds / (60 * 60));
+    return `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+
+  return `${windowSeconds} seconds`;
+}
+
+function windowKindLabel(kind: CodexWindowKind): string {
+  return kind === "session" ? "Session" : "Weekly";
+}
+
+function fallbackSecondsForWindowKind(kind: CodexWindowKind): number {
+  return kind === "session" ? 5 * 60 * 60 : 7 * 24 * 60 * 60;
 }
 
 function authSourceLabel(authStatus: SubscriptionAuthStatus): string | undefined {
@@ -252,6 +276,44 @@ function createCodexWindow(
   };
 }
 
+function inferCodexWindowKind(
+  limit: CodexUsageLimitWindow | CodexUsageArrayLimit | undefined,
+  fallbackKind: CodexWindowKind,
+  sourceLabel: string,
+): { kind: CodexWindowKind; note?: string } {
+  const unit = String((limit as CodexUsageArrayLimit | undefined)?.unit ?? "");
+  if (unit === "3") {
+    return { kind: "session" };
+  }
+
+  if (unit === "6") {
+    return { kind: "weekly" };
+  }
+
+  const windowSeconds = parseNumber((limit as CodexUsageLimitWindow | undefined)?.limit_window_seconds);
+  if (windowSeconds != null) {
+    if (windowSeconds <= 8 * 60 * 60) {
+      return {
+        kind: "session",
+        note: fallbackKind === "session"
+          ? undefined
+          : `${sourceLabel} window duration is ${formatWindowDuration(windowSeconds)}, so it is displayed as Session.`,
+      };
+    }
+
+    if (windowSeconds >= 6 * 24 * 60 * 60) {
+      return {
+        kind: "weekly",
+        note: fallbackKind === "weekly"
+          ? undefined
+          : `${sourceLabel} window duration is ${formatWindowDuration(windowSeconds)}, so it is displayed as Weekly.`,
+      };
+    }
+  }
+
+  return { kind: fallbackKind };
+}
+
 function parseCodexLimitsArray(limits: unknown): CodexWindowParseResult {
   const parseNotes: string[] = [];
   if (!Array.isArray(limits) || limits.length === 0) {
@@ -282,17 +344,57 @@ function parseCodexLimitsArray(limits: unknown): CodexWindowParseResult {
 
 function parseCodexUsageWindows(response: CodexUsageResponse): CodexWindowParseResult {
   const rateLimit = response.rate_limit ?? response.rate_limits ?? {};
-  const primary = rateLimit.primary_window ?? rateLimit.primary ?? rateLimit.five_hour_limit ?? rateLimit.five_hour;
-  const secondary = rateLimit.secondary_window ?? rateLimit.secondary ?? rateLimit.weekly_limit ?? rateLimit.weekly;
+  const parseNotes: string[] = [];
+  const resolvedWindows: Partial<Record<CodexWindowKind, SubscriptionUsageWindowDefinition>> = {};
+  const candidates = [
+    {
+      sourceLabel: "Primary",
+      fallbackKind: "session" as const,
+      limit: rateLimit.primary_window ?? rateLimit.primary ?? rateLimit.five_hour_limit ?? rateLimit.five_hour,
+    },
+    {
+      sourceLabel: "Secondary",
+      fallbackKind: "weekly" as const,
+      limit: rateLimit.secondary_window ?? rateLimit.secondary ?? rateLimit.weekly_limit ?? rateLimit.weekly,
+    },
+  ];
 
-  const sessionWindow = createCodexWindow("Session", primary, 5 * 60 * 60);
-  const weeklyWindow = createCodexWindow("Weekly", secondary, 7 * 24 * 60 * 60);
+  for (const candidate of candidates) {
+    if (!candidate.limit) {
+      continue;
+    }
 
-  if (sessionWindow || weeklyWindow) {
+    const inferred = inferCodexWindowKind(candidate.limit, candidate.fallbackKind, candidate.sourceLabel);
+    if (inferred.note) {
+      parseNotes.push(inferred.note);
+    }
+
+    let targetKind = inferred.kind;
+    if (resolvedWindows[targetKind]) {
+      if (!resolvedWindows[candidate.fallbackKind]) {
+        targetKind = candidate.fallbackKind;
+      } else {
+        parseNotes.push(`Ignoring duplicate ${windowKindLabel(inferred.kind).toLowerCase()} window from the ${candidate.sourceLabel.toLowerCase()} slot.`);
+        continue;
+      }
+    }
+
+    const window = createCodexWindow(
+      windowKindLabel(targetKind),
+      candidate.limit,
+      fallbackSecondsForWindowKind(targetKind),
+    );
+
+    if (window) {
+      resolvedWindows[targetKind] = window;
+    }
+  }
+
+  if (resolvedWindows.session || resolvedWindows.weekly) {
     return {
-      sessionWindow,
-      weeklyWindow,
-      parseNotes: [],
+      sessionWindow: resolvedWindows.session,
+      weeklyWindow: resolvedWindows.weekly,
+      parseNotes,
     };
   }
 
@@ -320,16 +422,10 @@ async function fetchCodexUsage(accessToken: string, accountId: string): Promise<
   return response.json() as Promise<CodexUsageResponse>;
 }
 
-function buildStatusLine(sessionWindow?: SubscriptionUsageWindowDefinition, weeklyWindow?: SubscriptionUsageWindowDefinition): string {
-  const parts: string[] = [];
-
-  if (sessionWindow?.usedPercent != null) {
-    parts.push(`session ${formatPercent(sessionWindow.usedPercent)} used`);
-  }
-
-  if (weeklyWindow?.usedPercent != null) {
-    parts.push(`weekly ${formatPercent(weeklyWindow.usedPercent)} used`);
-  }
+function buildStatusLine(usageWindows: SubscriptionUsageWindowDefinition[]): string {
+  const parts = usageWindows
+    .filter((window) => window.usedPercent != null)
+    .map((window) => `${window.label.toLowerCase()} ${formatPercent(window.usedPercent)} used`);
 
   return parts.join(" • ") || "live usage data";
 }
@@ -374,7 +470,7 @@ export async function loadOpenAiCodexRuntimeState(): Promise<SubscriptionProvide
         state: "error",
         implementationStatus: "implemented",
         statusLine: "schema mismatch",
-        errorMessage: "Codex returned usage data, but no session/weekly windows could be parsed from the current response schema.",
+        errorMessage: "Codex returned usage data, but no active usage windows could be parsed from the current response schema.",
         authHint: "This provider depends on an unofficial ChatGPT/Codex usage endpoint that may change without notice.",
         usageWindows: [],
       };
@@ -383,7 +479,8 @@ export async function loadOpenAiCodexRuntimeState(): Promise<SubscriptionProvide
     const sourceLabel = authSourceLabel(authStatus);
     const notes = [
       "Uses the unofficial ChatGPT/Codex GET /backend-api/wham/usage endpoint.",
-      "OpenAI currently exposes percentage-based session and weekly counters here, not absolute message/token limits.",
+      "This endpoint reports percentage-based usage only; it does not expose absolute message or token counts.",
+      "Per OpenAI's Codex pricing docs, the underlying meter is driven by credit/token consumption, so usage can move by different amounts depending on model, context size, reasoning, tool use, caching, and cloud vs local work.",
       "The progress-bar notch marks the current point in the active time window.",
       ...parseNotes,
     ];
@@ -408,15 +505,34 @@ export async function loadOpenAiCodexRuntimeState(): Promise<SubscriptionProvide
       notes.push(`${rateLimitResetCredits} rate-limit reset credit(s) available.`);
     }
 
+    if (weeklyWindow && !sessionWindow) {
+      notes.push("The current response only returned a weekly window; no separate 5-hour/session window was active in this snapshot.");
+    }
+
+    if (sessionWindow && !weeklyWindow) {
+      notes.push("The current response only returned a session-style window; no separate weekly window was active in this snapshot.");
+    }
+
+    const description = sessionWindow && weeklyWindow
+      ? "Live personal usage data for ChatGPT/Codex session and weekly limits."
+      : weeklyWindow
+        ? "Live personal weekly usage data for ChatGPT/Codex."
+        : "Live personal session usage data for ChatGPT/Codex.";
+    const usageHint = sessionWindow && weeklyWindow
+      ? "Shows the active 5-hour/session and weekly/7-day windows currently returned by the ChatGPT/Codex product API."
+      : weeklyWindow
+        ? "Shows the active weekly/7-day window currently returned by the ChatGPT/Codex product API. Some accounts may not currently expose a separate 5-hour/session window."
+        : "Shows the active session-style window currently returned by the ChatGPT/Codex product API.";
+
     return {
       state: "ready",
       implementationStatus: "implemented",
-      statusLine: buildStatusLine(sessionWindow, weeklyWindow),
-      description: "Live personal usage data for ChatGPT/Codex session and weekly limits.",
+      statusLine: buildStatusLine(usageWindows),
+      description,
       authHint: [sourceLabel ? `token: ${sourceLabel}` : undefined, accountResolution.source ? `account id: ${accountResolution.source}` : undefined]
         .filter(Boolean)
         .join(" • "),
-      usageHint: "Shows the current session/5-hour window and weekly/7-day window returned by the ChatGPT/Codex product API.",
+      usageHint,
       notes,
       usageWindows,
       lastUpdatedAt: new Date(),
@@ -440,17 +556,16 @@ export const openAiCodexProvider: SubscriptionProviderDefinition = {
   shortLabel: "OpenAI/Codex",
   enabledByDefault: true,
   implementationStatus: "implemented",
-  description: "Live ChatGPT/Codex personal session and weekly usage view.",
+  description: "Live ChatGPT/Codex personal usage view.",
   authHint: "Uses Pi-managed OpenAI/Codex auth plus a ChatGPT account id.",
-  usageHint: "Uses the unofficial ChatGPT/Codex usage endpoint for personal subscription-style limits.",
+  usageHint: "Uses the unofficial ChatGPT/Codex usage endpoint for personal subscription-style limits and credits.",
   stability: "mixed",
   notes: [
     "This provider relies on an unofficial ChatGPT/Codex endpoint.",
-    "The current implementation focuses on the session and weekly usage windows.",
+    "It displays whichever active usage windows the endpoint currently returns for your account.",
   ],
   usageWindows: [
-    { label: "Session", statusLabel: "loading…", notches: [25, 50, 75] },
-    { label: "Weekly", statusLabel: "loading…", notches: [25, 50, 75] },
+    { label: "Usage", statusLabel: "loading…", notches: [25, 50, 75] },
   ],
   loadRuntimeState: loadOpenAiCodexRuntimeState,
 };
