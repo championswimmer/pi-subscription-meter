@@ -15,7 +15,7 @@ Add an xAI provider to `/subscriptions` that reuses the OAuth credential stored 
 - [x] Register the provider and update user-facing documentation.
 - [x] Run typecheck and targeted non-secret validation.
 - [x] Update this plan with the actual implementation and validation results.
-- [ ] Commit the completed work and push the current branch.
+- [x] Commit the completed work and push the current branch (`3162a21`, pushed to `origin/main`).
 
 ## Detailed implementation plan
 1. Inspect Pi’s installed provider/auth implementation and documentation to establish the `xai` auth-store key, subscription credential shape, refresh handling, and supported API-key fallback. Reuse `createSubscriptionAuthStorage().getApiKey("xai")` so Pi remains the owner of OAuth refresh and storage.
@@ -42,4 +42,4 @@ Add an xAI provider to `/subscriptions` that reuses the OAuth credential stored 
 - Passed `npm run typecheck` and `git diff --check`.
 
 ## Remaining validation
-- Focused commit and successful `git push origin main`.
+None.
