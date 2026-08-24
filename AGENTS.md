@@ -8,6 +8,7 @@ This repository uses two layers of agent guidance:
 ## Repo workflow rules
 
 - Before starting implementation work, create or update a plan in `.agents/plans/`.
+- The `.agents/plans/archive/` subfolder is for historical reference only and should not be read during active development. Active plans stay in `.agents/plans/`.
 - Every plan must include:
   - a checklist of tasks
   - a detailed step-by-step implementation plan
