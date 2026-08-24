@@ -4,6 +4,7 @@ import { kiloCodeProvider } from "./kilocode.ts";
 import { opencodeProvider } from "./opencode.ts";
 import { openAiCodexProvider } from "./openai-codex.ts";
 import { openRouterProvider } from "./openrouter.ts";
+import { xaiProvider } from "./xai.ts";
 import type { SubscriptionProviderDefinition, SubscriptionProviderId } from "./types.ts";
 
 // Temporary release guard: keep Kilo Code out of the registry until its runtime path is re-enabled safely.
@@ -14,6 +15,7 @@ const DEFAULT_PROVIDERS: SubscriptionProviderDefinition[] = [
   githubCopilotProvider,
   anthropicProvider,
   openRouterProvider,
+  xaiProvider,
   ...(ENABLE_KILO_CODE_PROVIDER ? [kiloCodeProvider] : []),
   opencodeProvider,
 ];

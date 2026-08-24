@@ -14,6 +14,7 @@ Detailed endpoint-by-endpoint request/response schema inventory:
 | OpenAI | `/organization/costs`, `/organization/usage/*` | OpenAI **Admin API key** | Official admin API | Good for org usage and spend, not ChatGPT Plus/Pro subscription counters |
 | OpenAI / ChatGPT / Codex | `https://chatgpt.com/backend-api/wham/usage` | ChatGPT/Codex bearer token + account id | Unofficial / reverse-engineered | Useful for end-user subscription usage windows |
 | OpenRouter | `/api/v1/key`, `/api/v1/credits` | OpenRouter API key | Official | Easiest provider to support for credit + budget usage |
+| xAI SuperGrok | `GET https://cli-chat-proxy.grok.com/v1/user`, then `GET /v1/billing?format=credits` | Pi `/login xai` OAuth bearer with `grok-cli:access` scope | Unofficial / product-specific | Reuse the validated `userId` only as the `x-userid` request header; returns a shared weekly period and may return usage percentages or product breakdowns |
 | Kilo Code / Kilo Gateway | Per-request `usage` in gateway responses; source-exposed `GET /api/profile`, `GET /api/profile/balance` | `KILO_API_KEY`, local Kilo auth (`~/.local/share/kilo/auth.json`), or legacy `~/.kilocode/cli/config.json` token | Mixed: official per-request usage, source-exposed balance/profile endpoints | Best current fit is a balance-centric provider tab; stable public aggregate usage API not yet confirmed |
 | Exa | `GET https://admin-api.exa.ai/team-management/api-keys/{id}/usage` (+ team-management key listing) | Exa service API key | Official team-management API | Good for API-key/team usage and billing analytics; no public remaining-balance / credits-left API found |
 | Parallel Search | `Platform > Usage` dashboard (no documented usage API found) | Parallel API key for request APIs; dashboard account for the usage UI | Console-only / no public usage API found | Official docs expose pricing and dashboard usage/spend, but not an API endpoint for balance, credits left, or spend retrieval |
@@ -184,6 +185,42 @@ Existing quota tools use an internal ChatGPT endpoint for user subscription usag
 - OpenAI’s official Admin APIs are for org usage and spend
 - ChatGPT / Codex end-user subscription counters appear to require internal product endpoints instead
 - official Codex pricing docs say the underlying meter is driven by token/credit consumption, so the percentage shown by `wham/usage` is not a simple message count and can vary with model, context size, reasoning, tool use, caching, and cloud vs local execution
+
+---
+
+## xAI SuperGrok
+
+### Personal subscription usage source
+
+**Endpoint sequence (undocumented / product-specific)**
+1. `GET https://cli-chat-proxy.grok.com/v1/user`
+2. Validate the returned printable-ASCII `userId`, then call `GET https://cli-chat-proxy.grok.com/v1/billing?format=credits` with that value in `x-userid`.
+
+**Auth and headers**
+- `Authorization: Bearer <Pi xAI OAuth access token>`
+- Grok CLI proxy headers observed from current working integrations:
+  - `x-grok-client-identifier: grok-shell`
+  - `x-grok-client-version: 0.2.101`
+  - `x-grok-client-mode: interactive`
+  - `X-XAI-Token-Auth: xai-grok-cli`
+  - `x-authenticateresponse: authenticate-response`
+- Pi’s built-in `/login xai` OAuth flow uses client id `b1a00492-073a-47ea-816f-4c329264a828` and requests `grok-cli:access` plus `api:access`; Pi stores the resulting OAuth credential under `xai` in `~/.pi/agent/auth.json` and owns refresh.
+- `XAI_API_KEY` is for billed xAI API access and must **not** be treated as a SuperGrok subscription-quota credential.
+
+**Observed response fields**
+- `config.currentPeriod.type`, `start`, `end`; current paid accounts return `USAGE_PERIOD_TYPE_WEEKLY` for the shared pool.
+- When supplied: `config.creditUsagePercent`, `config.productUsage[].product`, and `config.productUsage[].usagePercent`.
+- Other observed fields include `config.billingPeriodStart`, `billingPeriodEnd`, `isUnifiedBillingUser`, `onDemandCap`, `onDemandUsed`, and `prepaidBalance`.
+
+**Validation and caveats**
+- A safe live validation on 2026-08-24 using this repository’s Pi-managed xAI OAuth credential returned HTTP 200 from both proxy calls and a weekly `currentPeriod` with valid bounds. That account’s response omitted `creditUsagePercent` and `productUsage`, so an implementation must report the active period without inventing `0%` usage.
+- The direct consumer gRPC-web RPC `POST https://grok.com/grok_api_v2.GrokBuildBilling/GetGrokCreditsConfig` accepted the same bearer but returned an empty body in that validation. Do not depend on it for this integration.
+- Treat the proxy endpoints as **unofficial** and expect account/rollout-specific fields or breakage. Do not log the user id, bearer token, or raw billing body.
+
+**Implementation sources**
+- Pi’s current xAI OAuth flow: installed `@earendil-works/pi-ai/dist/auth/oauth/xai.js`.
+- Proxy request and defensive response shape: <https://github.com/stnly/pi-grok/blob/main/usage.ts> and <https://github.com/stnly/pi-grok/blob/main/account.ts>.
+- xAI’s official product FAQ describes one shared paid weekly pool across Grok products, but does not document the API endpoint: <https://docs.x.ai/grok/faq>.
 
 ---
 

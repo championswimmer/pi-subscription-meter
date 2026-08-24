@@ -21,7 +21,7 @@ This repository currently contains:
 - npm + TypeScript package setup for a Pi extension
 - a `/subscriptions` Pi command
 - a tabbed Pi TUI dialog that renders one tab per enabled provider
-- a pluggable provider registry with initial scaffolds for OpenAI Codex, GitHub Copilot, Anthropic, OpenRouter, and OpenCode
+- a pluggable provider registry with live OpenAI Codex, GitHub Copilot, Anthropic, OpenRouter, and xAI SuperGrok support plus an OpenCode scaffold
 - repo-level agent instructions in `AGENTS.md`
 - Agent Skills under `.agents/skills/`
 - an implementation planning workflow under `.agents/plans/`
@@ -36,6 +36,7 @@ The extension is intended to track or summarize subscription/usage information f
 - OpenRouter
 - OpenCode
 - GitHub Copilot
+- xAI SuperGrok (via Pi `/login xai` subscription OAuth)
 
 ## Inspiration
 
@@ -75,6 +76,10 @@ The extension stores its settings in the Pi agent directory using the documented
 If `PI_CODING_AGENT_DIR` is set, Pi’s configured agent directory override is respected automatically.
 
 Use the in-app settings overlay opened with `s` from `/subscriptions` to update provider enablement.
+
+### xAI SuperGrok
+
+Run `/login xai` and choose **Use a subscription**. The xAI tab reuses Pi’s managed OAuth credential to show the shared SuperGrok subscription period and any usage percentage xAI reports. It uses undocumented Grok CLI proxy billing endpoints, so response fields can vary or change without notice. `XAI_API_KEY` is intentionally not used here because it represents billed xAI API access, not a personal SuperGrok subscription.
 
 ## Planned package shape
 

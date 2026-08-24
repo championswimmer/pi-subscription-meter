@@ -39,6 +39,7 @@ const PROVIDER_ENV_KEYS: Record<string, string[]> = {
   openai: ["OPENAI_API_KEY"],
   "openai-codex": ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN", "CHATGPT_ACCESS_TOKEN"],
   openrouter: ["OPENROUTER_API_KEY"],
+  xai: ["XAI_API_KEY"],
 };
 
 class FallbackAuthStorage implements SubscriptionAuthStorage {

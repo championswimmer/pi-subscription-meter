@@ -4,7 +4,8 @@ export type SubscriptionProviderId =
   | "anthropic"
   | "openrouter"
   | "kilocode"
-  | "opencode";
+  | "opencode"
+  | "xai";
 
 export type SubscriptionProviderStability = "official" | "unofficial" | "mixed" | "unknown";
 export type SubscriptionProviderImplementationStatus = "scaffold" | "implemented";
