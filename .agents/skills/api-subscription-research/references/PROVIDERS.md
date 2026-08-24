@@ -18,7 +18,7 @@ Detailed endpoint-by-endpoint request/response schema inventory:
 | Kilo Code / Kilo Gateway | Per-request `usage` in gateway responses; source-exposed `GET /api/profile`, `GET /api/profile/balance` | `KILO_API_KEY`, local Kilo auth (`~/.local/share/kilo/auth.json`), or legacy `~/.kilocode/cli/config.json` token | Mixed: official per-request usage, source-exposed balance/profile endpoints | Best current fit is a balance-centric provider tab; stable public aggregate usage API not yet confirmed |
 | Exa | `GET https://admin-api.exa.ai/team-management/api-keys/{id}/usage` (+ team-management key listing) | Exa service API key | Official team-management API | Good for API-key/team usage and billing analytics; no public remaining-balance / credits-left API found |
 | Parallel Search | `Platform > Usage` dashboard (no documented usage API found) | Parallel API key for request APIs; dashboard account for the usage UI | Console-only / no public usage API found | Official docs expose pricing and dashboard usage/spend, but not an API endpoint for balance, credits left, or spend retrieval |
-| OpenCode Go / Zen | Go docs + dashboard page `https://opencode.ai/workspace/{workspaceId}/go`; Zen docs + local `opencode stats` | OpenCode API key for official model endpoints; browser `auth` cookie + workspace id for Go dashboard; local CLI/auth for Zen stats | Mixed: official docs for limits/models, unofficial for live usage | Go usage can be scraped from the dashboard page; Zen still has no clearly documented public usage/credits API |
+| OpenCode Go / Zen | Official `GET https://opencode.ai/zen/go/v1/usage` for Go; unofficial `GET https://opencode.ai/workspace/{workspaceId}/billing` scrape for Zen dollars | OpenCode API key (`opencode` / `opencode-go` in `~/.local/share/opencode/auth.json`, `OPENCODE_API_KEY`, `OPENCODE_GO_API_KEY`) for Go; browser `auth` cookie + workspace id for Zen billing | Mixed: official Go usage API, unofficial Zen billing scrape | Go returns used percent for 5h / weekly / monthly. Zen still has no official balance API (`/zen/v1/balance` 404s). |
 | GitHub Copilot org / enterprise | `orgs/{org}/copilot/billing`, `.../seats`, enterprise equivalents | GitHub token with org/enterprise billing permissions | Official preview APIs | Good for org/enterprise billing + seat state |
 | GitHub Copilot end-user counters | `api.github.com/copilot_internal/*` | GitHub OAuth token / exchanged Copilot token | Unofficial / internal | Useful for personal monthly counters and entitlement snapshots |
 
@@ -443,60 +443,90 @@ OpenCode’s docs clearly document:
 
 ### Best currently known programmatic usage sources
 
-#### OpenCode Go live usage: dashboard page scrape (**unofficial**)
+#### OpenCode Go live usage: official JSON endpoint
 
-A working implementation pattern exists in adjacent tooling:
-- request `GET https://opencode.ai/workspace/{workspaceId}/go`
-- authenticate with the browser/session cookie header `Cookie: auth=<cookie>`
-- parse the rendered page / embedded Next.js payload for:
-  - `rollingUsage.usagePercent`
-  - `rollingUsage.resetInSec`
-  - `weeklyUsage.usagePercent`
-  - `weeklyUsage.resetInSec`
-  - `monthlyUsage.usagePercent`
-  - `monthlyUsage.resetInSec`
+Source in OpenCode console: `packages/console/app/src/routes/zen/go/v1/usage.ts`.
 
-**Required auth/material**
-- OpenCode Go API key is still useful for validating access against `GET https://opencode.ai/zen/go/v1/models`
-- but live usage needs:
-  - OpenCode browser `auth` cookie
-  - workspace id (`wrk_...`)
+```
+GET https://opencode.ai/zen/go/v1/usage
+Authorization: Bearer <api-key>
+```
 
-**Likely sources for those values**
-- browser cookies for `opencode.ai`
-- recent visits to `/workspace/{workspaceId}/go`
-- optional local config file or env overrides if this repo chooses to support them
+Response:
+
+```json
+{
+  "usage": {
+    "rolling": { "status": "ok", "percent": 4, "resetsAt": "2026-08-13T16:27:38.287Z" },
+    "weekly":  { "status": "ok", "percent": 3, "resetsAt": "2026-08-17T00:00:00.287Z" },
+    "monthly": { "status": "ok", "percent": 1, "resetsAt": "2026-09-13T06:06:01.287Z" }
+  }
+}
+```
+
+- `percent` is **used** percent (`usagePercent` from LiteData).
+- `status` is `"ok"` or `"rate-limited"`.
+- `resetsAt` is ISO (`now + resetInSec`).
+- 401 = bad key. 403 `EntitlementError` = no Go subscription.
+- The API does **not** return dollar remaining. Published limits are `$12` / 5h, `$30` / week, `$60` / month.
+- A Zen-only API key against this endpoint returns 403.
+
+**Key sources**
+- `OPENCODE_GO_API_KEY`
+- `~/.local/share/opencode/auth.json` → `opencode-go.key`
+- `OPENCODE_API_KEY`
+- `~/.local/share/opencode/auth.json` → `opencode.key`
+- Pi `auth.json` → `opencode`
 
 **Stability**
-- treat this as **unofficial / fragile**
-- it is HTML / app-payload scraping, not a documented JSON quota API
+- official product API (Bearer API key)
+- not prominently documented on the public Go docs page, but the route is first-party console source
 
-#### OpenCode Zen live usage: no clearly documented public usage API yet
+#### OpenCode Zen live usage: unofficial billing scrape (no official API yet)
 
-Current official docs document models and pricing, but not a public JSON usage/credits endpoint for end-user Zen balance or spend.
+Live probe (2026-08-24) of a valid Zen API key:
 
-Two practical-but-imperfect options are currently known:
+| Endpoint | Result |
+| --- | --- |
+| `GET /zen/v1/usage` | 404 |
+| `GET /zen/v1/balance` | 404 |
+| `GET /zen/v1/credits` | 404 |
+| `GET /zen/go/v1/balance` | 404 |
+| `GET https://api.opencode.ai/v1/credits` | 200 with body `Not Found` |
+| `GET /zen/v1/models` | 200 models list |
 
-1. **Local CLI stats**
-   - run `opencode stats --days 7 --models`
-   - filter rows for `opencode/` and optionally `opencode-go/` model prefixes
-   - this gives local observed cost/session history, not authoritative server-side remaining balance
+GitHub issues [#10447](https://github.com/anomalyco/opencode/issues/10447), [#10448](https://github.com/anomalyco/opencode/issues/10448), and [#44189](https://github.com/anomalyco/opencode/issues/44189) still request an official Zen balance endpoint.
 
-2. **Legacy / unverified credits endpoint candidate**
-   - `GET https://api.opencode.ai/v1/credits`
-   - bearer auth with the OpenCode API key
-   - observed only in third-party code; the same code explicitly treats `404` and even HTTP `200` with body `Not Found` as signs the endpoint is unavailable
-   - because it is not in current official docs, treat it as **unofficial / possibly deprecated / unverified**
+Community tools scrape the workspace billing page:
+
+```
+GET https://opencode.ai/workspace/{workspaceId}/billing
+Cookie: auth=<console session cookie>
+```
+
+Parse SSR HTML / `billing.get` for `balance`, `monthlyLimit`, `monthlyUsage`.
+
+Unit conversion (console `formatBalance` and community parsers):
+- `balance` and `monthlyUsage` are **1e8 units = $1**
+- `monthlyLimit` is already **dollars**
+
+**Required auth/material**
+- `OPENCODE_AUTH_COOKIE` / `OPENCODE_ZEN_COOKIE` / `OPENCODE_COOKIE`
+- `OPENCODE_WORKSPACE_ID` / `OPENCODE_ZEN_WORKSPACE_ID` (`wrk_...`), or discover it from `https://opencode.ai/` when a cookie is present
+
+**Local CLI stats are not a remaining-balance source**
+- `opencode stats` / `opencode.db` session costs are mixed-provider local estimates
+- they cannot provide account remaining dollars
+
+**Stability**
+- treat Zen billing scrape as **unofficial / fragile**
+- do not present it as an official usage API
 
 ### Practical implication for this repo
 
-The safest current position is:
-- **OpenCode Go** can be implemented with documented static limits plus an **unofficial dashboard scrape** for live 5h/weekly/monthly usage
-- **OpenCode Zen** should be treated as either:
-  - a local CLI-stats-backed approximation, or
-  - an informational/pay-as-you-go provider until a documented balance/usage API is confirmed
-
-Do **not** present either source as a stable official usage API unless OpenCode publishes one.
+- **OpenCode Go** should use the official `/zen/go/v1/usage` JSON API and derive remaining dollars from published limits.
+- **OpenCode Zen** can show dollars left / dollars used only via the unofficial billing scrape until OpenCode ships `/zen/v1/balance` or equivalent.
+- A single OpenCode tab can load both products independently and stay ready if either succeeds.
 
 ---
 
@@ -590,7 +620,7 @@ Useful possible sources for GitHub tokens in adjacent tooling:
 6. **Anthropic user subscription** — valuable, but unofficial.
 7. **OpenAI/ChatGPT/Codex user subscription** — valuable, but unofficial.
 8. **GitHub Copilot personal counters** — valuable, but unofficial.
-9. **OpenCode** — wait for a clearly documented usage API or ship as informational-only first.
+9. **OpenCode** — official Go `/zen/go/v1/usage` plus unofficial Zen billing scrape for dollars left/used.
 10. **Parallel Search** — currently dashboard-only for usage/spend visibility unless an unofficial dashboard endpoint is intentionally adopted.
 
 ---

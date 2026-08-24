@@ -38,6 +38,7 @@ const PROVIDER_ENV_KEYS: Record<string, string[]> = {
   kilocode: ["KILO_API_KEY", "KILOCODE_API_KEY", "KILO_CODE_API_KEY", "KILO_TOKEN", "KILOCODE_TOKEN", "KILO_CODE_TOKEN"],
   openai: ["OPENAI_API_KEY"],
   "openai-codex": ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN", "CHATGPT_ACCESS_TOKEN"],
+  opencode: ["OPENCODE_API_KEY", "OPENCODE_GO_API_KEY"],
   openrouter: ["OPENROUTER_API_KEY"],
   xai: ["XAI_API_KEY"],
 };

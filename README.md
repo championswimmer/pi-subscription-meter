@@ -21,7 +21,7 @@ This repository currently contains:
 - npm + TypeScript package setup for a Pi extension
 - a `/subscriptions` Pi command
 - a tabbed Pi TUI dialog that renders one tab per enabled provider
-- a pluggable provider registry with live OpenAI Codex, GitHub Copilot, Anthropic, OpenRouter, and xAI SuperGrok support plus an OpenCode scaffold
+- a pluggable provider registry with live OpenAI Codex, GitHub Copilot, Anthropic, OpenRouter, xAI SuperGrok, and OpenCode Go/Zen support
 - repo-level agent instructions in `AGENTS.md`
 - Agent Skills under `.agents/skills/`
 - an implementation planning workflow under `.agents/plans/`
@@ -59,7 +59,7 @@ Once this extension is loaded in Pi, use:
 /subscriptions
 ```
 
-This opens a tabbed dialog showing all currently enabled provider scaffolds.
+This opens a tabbed dialog showing all currently enabled providers.
 
 Press `s` inside the dialog to open provider settings in a sub-dialog overlay and enable/disable providers.
 
@@ -80,6 +80,13 @@ Use the in-app settings overlay opened with `s` from `/subscriptions` to update 
 ### xAI SuperGrok
 
 Run `/login xai` and choose **Use a subscription**. The xAI tab reuses Pi’s managed OAuth credential to show the shared SuperGrok subscription period and any usage percentage xAI reports. It uses undocumented Grok CLI proxy billing endpoints, so response fields can vary or change without notice. `XAI_API_KEY` is intentionally not used here because it represents billed xAI API access, not a personal SuperGrok subscription.
+
+### OpenCode Go / Zen
+
+The OpenCode tab loads both products independently:
+
+- **Go** uses the official `GET https://opencode.ai/zen/go/v1/usage` endpoint and shows 5h / weekly / monthly remaining. Dollar remaining is derived from the published `$12` / `$30` / `$60` limits. Keys come from `OPENCODE_GO_API_KEY`, `OPENCODE_API_KEY`, `~/.local/share/opencode/auth.json` (`opencode-go` or `opencode`), or Pi auth.
+- **Zen** is pay-as-you-go and still has no official balance API. Dollars left / used come from an unofficial scrape of `https://opencode.ai/workspace/{id}/billing`. Set `OPENCODE_AUTH_COOKIE` and optionally `OPENCODE_WORKSPACE_ID` (`wrk_...`).
 
 ## Planned package shape
 
