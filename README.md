@@ -1,5 +1,8 @@
 # pi-subscription-meter
 
+[![npm version](https://img.shields.io/npm/v/pi-subscription-meter?style=flat-square)](https://www.npmjs.com/package/pi-subscription-meter)
+[![npm downloads](https://img.shields.io/npm/dm/pi-subscription-meter?style=flat-square)](https://www.npmjs.com/package/pi-subscription-meter)
+
 A Pi extension package for surfacing subscription, quota, and usage limits across AI providers.
 
 <img width="973" height="704" alt="image" src="https://github.com/user-attachments/assets/e54f71ac-fa59-438a-9936-61201deec457" />
