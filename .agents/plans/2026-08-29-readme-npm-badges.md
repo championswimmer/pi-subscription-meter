@@ -1,6 +1,6 @@
 # Add npm badges to README
 
-- **Status:** in-progress
+- **Status:** complete
 - **Date:** 2026-08-29
 - **Owner:** agent
 
@@ -12,9 +12,9 @@ Add Shields.io badges for the published npm package version and downloads to the
 
 - [x] Review repository instructions and current README/package metadata.
 - [x] Create a task plan in `.agents/plans/`.
-- [ ] Add npm version and downloads badges to `README.md`.
-- [ ] Validate the README changes and scan modified files for secrets.
-- [ ] Update this plan to reflect completed work and open a pull request.
+- [x] Add npm version and downloads badges to `README.md`.
+- [x] Validate the README changes and scan modified files for secrets.
+- [x] Update this plan to reflect completed work and open a pull request.
 
 ## Detailed implementation plan
 
@@ -22,7 +22,7 @@ Add Shields.io badges for the published npm package version and downloads to the
 2. Insert concise Shields.io badges near the top of `README.md`, linking both badges to the npm package page and matching the existing flat-square style already used in the README.
 3. Review the rendered markdown structure to ensure the badges appear in a sensible location and do not disrupt existing content.
 4. Run the required validation for the touched files, including a secrets scan of modified files.
-5. Update this plan checklist and status to match the final state, then prepare the pull request summary.
+5. Update this plan checklist and status to match the final state, then prepare the pull request summary and open the PR.
 
 ## Risks / questions
 
@@ -31,5 +31,5 @@ Add Shields.io badges for the published npm package version and downloads to the
 
 ## Validation
 
-- Review the changed markdown in `README.md`.
-- Run the repository secret scan on modified files before committing.
+- Reviewed the changed markdown in `README.md` to confirm badge placement and links.
+- Ran the repository secret scan on `README.md` and `.agents/plans/2026-08-29-readme-npm-badges.md`.
