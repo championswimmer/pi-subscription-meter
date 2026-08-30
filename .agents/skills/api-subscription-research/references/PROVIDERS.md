@@ -14,6 +14,7 @@ Detailed endpoint-by-endpoint request/response schema inventory:
 | OpenAI | `/organization/costs`, `/organization/usage/*` | OpenAI **Admin API key** | Official admin API | Good for org usage and spend, not ChatGPT Plus/Pro subscription counters |
 | OpenAI / ChatGPT / Codex | `https://chatgpt.com/backend-api/wham/usage` | ChatGPT/Codex bearer token + account id | Unofficial / reverse-engineered | Useful for end-user subscription usage windows |
 | OpenRouter | `/api/v1/key`, `/api/v1/credits` | OpenRouter API key | Official | Easiest provider to support for credit + budget usage |
+| Meta Model API / Muse | Per-request `usage` from `/v1/responses`, `/v1/chat/completions`, `/v1/messages`; rate-limit headers on successful responses | Meta Model API key (`MODEL_API_KEY` / local `MUSE_API_KEY`) | Mixed: official inline usage, no aggregate usage API found | Good for per-call token accounting and current RPM/TPM headroom; no documented `dollars used` / historical request-count endpoint found |
 | xAI SuperGrok | `GET https://cli-chat-proxy.grok.com/v1/user`, then `GET /v1/billing?format=credits` | Pi `/login xai` OAuth bearer with `grok-cli:access` scope | Unofficial / product-specific | Reuse the validated `userId` only as the `x-userid` request header; returns a shared weekly period and may return usage percentages or product breakdowns |
 | Kilo Code / Kilo Gateway | Per-request `usage` in gateway responses; source-exposed `GET /api/profile`, `GET /api/profile/balance` | `KILO_API_KEY`, local Kilo auth (`~/.local/share/kilo/auth.json`), or legacy `~/.kilocode/cli/config.json` token | Mixed: official per-request usage, source-exposed balance/profile endpoints | Best current fit is a balance-centric provider tab; stable public aggregate usage API not yet confirmed |
 | Exa | `GET https://admin-api.exa.ai/team-management/api-keys/{id}/usage` (+ team-management key listing) | Exa service API key | Official team-management API | Good for API-key/team usage and billing analytics; no public remaining-balance / credits-left API found |
@@ -268,6 +269,74 @@ OpenRouter is one of the cleanest providers to support.
 - use `/api/v1/key` for key-scoped daily / weekly / monthly usage and optional per-key budget data
 - use `/api/v1/credits` to compute total remaining purchased credits as `total_credits - total_usage`
 - for the best end-user OpenRouter tab, combine both endpoints when `/api/v1/credits` is available
+
+---
+
+## Meta Model API / Muse
+
+### Official inference surfaces with inline usage
+
+**Documented endpoints**
+- `GET https://api.meta.ai/v1/models`
+- `POST https://api.meta.ai/v1/responses`
+- `POST https://api.meta.ai/v1/chat/completions`
+- `POST https://api.meta.ai/v1/messages`
+- token-counting helper: `POST https://api.meta.ai/v1/messages/count_tokens`
+
+**Auth**
+- `Authorization: Bearer <MODEL_API_KEY>`
+- Meta docs use the env var name `MODEL_API_KEY`; local validation in this repo used the existing `MUSE_API_KEY` value as that bearer token successfully
+
+**What live validation confirmed on 2026-08-30**
+- `MUSE_API_KEY` is present in the local environment
+- `GET /v1/models` returned HTTP 200 and listed `muse-image-1.0`, `muse-spark-1.2-contributor`, `muse-spark-1.2`, and `muse-spark-1.1`
+- `POST /v1/responses`, `POST /v1/chat/completions`, and `POST /v1/messages` all returned HTTP 200 with a `usage` object in the response body
+- successful inference responses also returned:
+  - `x-ratelimit-limit-requests`
+  - `x-ratelimit-remaining-requests`
+  - `x-ratelimit-limit-tokens`
+  - `x-ratelimit-remaining-tokens`
+
+**Observed inline usage fields**
+- Responses API: `usage.input_tokens`, `usage.output_tokens`, `usage.total_tokens`, `usage.input_tokens_details.cached_tokens`, `usage.output_tokens_details.reasoning_tokens`
+- Chat Completions: `usage.prompt_tokens`, `usage.completion_tokens`, `usage.total_tokens`, `usage.prompt_tokens_details.cached_tokens`, `usage.completion_tokens_details.reasoning_tokens`
+- Messages: `usage.input_tokens`, `usage.output_tokens`, `usage.cache_creation_input_tokens`, `usage.cache_read_input_tokens`, `usage.output_tokens_details.thinking_tokens`
+
+**What the official docs say**
+- pricing is pay-as-you-go per token
+- Standard-tier `muse-spark-1.1` and `muse-spark-1.2` pricing is `$1.25 / 1M` input tokens, `$0.15 / 1M` cached input tokens, and `$4.25 / 1M` output tokens
+- successful responses include rate-limit headers for current request/token budget
+- limits apply **per team, not per API key**
+- the dashboard is where API keys are created and managed
+
+### Aggregate usage / spend endpoint status
+
+**No documented aggregate usage API found**
+- current official docs reviewed during this research pass did **not** expose a documented `/usage`, `/billing`, `/credits`, invoice, or historical request-counter endpoint for Meta Model API
+- the pricing/rate-limit docs discuss dashboard usage monitoring and per-response/token-counting primitives, but not a spend-report API
+
+**Observed dashboard-only GraphQL route**
+- browser traffic from `https://dev.meta.ai/usage/` showed a private web endpoint: `POST https://dev.meta.ai/api/graphql/`
+- the copied request used persisted GraphQL query `doc_id=28117303444603430` with friendly name `LLMDCUsageQuery`
+- request variables included `start_date`, `end_date`, `team_id`, optional `api_key_id`, optional `model_id`, and feature flags such as `Usage_ShouldIncludeCostMetrics`
+- this strongly suggests the Meta dashboard can fetch team-scoped usage, and likely cost metrics, through an internal GraphQL query
+- however, this route uses browser-session auth and anti-CSRF parameters (`ecto_1_sess` / `llm_sess` cookies, `fb_dtsg`, `lsd`, `jazoest`, revision fields, etc.), **not** the public `MODEL_API_KEY`
+- treat it as **private / reverse-engineered dashboard traffic**: useful for experimentation or browser-auth scraping, but not a stable official API contract
+
+**Live negative probes on 2026-08-30**
+- `GET https://api.meta.ai/v1/usage` -> `404`
+- `GET https://api.meta.ai/v1/billing` -> `404`
+- `GET https://api.meta.ai/v1/organization/usage` -> `404`
+- `GET https://api.meta.ai/v1/organization/costs` -> `404`
+
+### Practical implication for this repo
+
+- Treat Meta Model API as an **official inline-usage provider**, not yet as an official aggregate billing/usage-report provider.
+- You can compute approximate dollars per request client-side from the returned `usage` object plus published rates.
+- You can read current minute-window headroom from the `x-ratelimit-*` headers.
+- You **cannot currently fetch** authoritative historical `dollars used` or total `LLM requests made` from a documented Meta endpoint using only the API key, based on current docs and live probes.
+- You **may** be able to fetch dashboard usage/cost data through the private `dev.meta.ai/api/graphql/` route if you have a valid browser session and are willing to depend on unstable internal parameters.
+- If the product later needs team-level spend totals, prefer a future official dashboard/export API over private web endpoints.
 
 ---
 
