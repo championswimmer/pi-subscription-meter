@@ -4,6 +4,7 @@ export type SubscriptionProviderId =
   | "anthropic"
   | "openrouter"
   | "kilocode"
+  | "kimi-coding"
   | "opencode"
   | "xai";
 

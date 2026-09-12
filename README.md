@@ -25,7 +25,7 @@ This repository currently contains:
 - npm + TypeScript package setup for a Pi extension
 - a `/subscriptions` Pi command
 - a tabbed Pi TUI dialog that renders one tab per enabled provider
-- a pluggable provider registry with live OpenAI Codex, GitHub Copilot, Anthropic, OpenRouter, xAI SuperGrok, and OpenCode Go/Zen support
+- a pluggable provider registry with live OpenAI Codex, GitHub Copilot, Anthropic, OpenRouter, xAI SuperGrok, Kimi Coding Plan, and OpenCode Go/Zen support
 - repo-level agent instructions in `AGENTS.md`
 - Agent Skills under `.agents/skills/`
 - an implementation planning workflow under `.agents/plans/`
@@ -41,6 +41,7 @@ The extension is intended to track or summarize subscription/usage information f
 - OpenCode
 - GitHub Copilot
 - xAI SuperGrok (via Pi `/login xai` subscription OAuth)
+- Kimi Coding Plan (via Pi `/login kimi-coding` subscription OAuth)
 
 ## Inspiration
 
@@ -84,6 +85,10 @@ Use the in-app settings overlay opened with `s` from `/subscriptions` to update 
 ### xAI SuperGrok
 
 Run `/login xai` and choose **Use a subscription**. The xAI tab reuses Pi’s managed OAuth credential to show the shared SuperGrok subscription period and any usage percentage xAI reports. It uses undocumented Grok CLI proxy billing endpoints, so response fields can vary or change without notice. `XAI_API_KEY` is intentionally not used here because it represents billed xAI API access, not a personal SuperGrok subscription.
+
+### Kimi Coding Plan
+
+Run `/login kimi-coding` and sign in with your Coding Plan account. The Kimi tab reuses Pi's managed OAuth credential to show the weekly Coding Plan quota plus the rolling short window (usually 5-hour) reported by Kimi's undocumented `GET /v1/usages` endpoint, so response fields can vary or change without notice. `KIMI_API_KEY` is intentionally not used here because it represents billed Moonshot platform access, not Coding Plan quota.
 
 ### OpenCode Go / Zen
 

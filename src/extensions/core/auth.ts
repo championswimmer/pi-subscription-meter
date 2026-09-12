@@ -34,6 +34,7 @@ type AuthStorageFactory = {
 const PROVIDER_ENV_KEYS: Record<string, string[]> = {
   anthropic: ["ANTHROPIC_API_KEY"],
   "github-copilot": ["GITHUB_COPILOT_TOKEN", "GITHUB_TOKEN"],
+  "kimi-coding": ["KIMI_API_KEY", "KIMI_CODE_API_KEY", "MOONSHOT_API_KEY"],
   kilo: ["KILO_API_KEY", "KILOCODE_API_KEY", "KILO_CODE_API_KEY", "KILO_TOKEN", "KILOCODE_TOKEN", "KILO_CODE_TOKEN"],
   kilocode: ["KILO_API_KEY", "KILOCODE_API_KEY", "KILO_CODE_API_KEY", "KILO_TOKEN", "KILOCODE_TOKEN", "KILO_CODE_TOKEN"],
   openai: ["OPENAI_API_KEY"],

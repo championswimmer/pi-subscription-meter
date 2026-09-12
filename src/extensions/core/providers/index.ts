@@ -1,6 +1,7 @@
 import { anthropicProvider } from "./anthropic.ts";
 import { githubCopilotProvider } from "./github-copilot.ts";
 import { kiloCodeProvider } from "./kilocode.ts";
+import { kimiCodeProvider } from "./kimi-code.ts";
 import { opencodeProvider } from "./opencode.ts";
 import { openAiCodexProvider } from "./openai-codex.ts";
 import { openRouterProvider } from "./openrouter.ts";
@@ -16,6 +17,7 @@ const DEFAULT_PROVIDERS: SubscriptionProviderDefinition[] = [
   anthropicProvider,
   openRouterProvider,
   xaiProvider,
+  kimiCodeProvider,
   ...(ENABLE_KILO_CODE_PROVIDER ? [kiloCodeProvider] : []),
   opencodeProvider,
 ];

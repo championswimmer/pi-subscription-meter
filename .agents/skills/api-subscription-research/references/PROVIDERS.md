@@ -16,6 +16,7 @@ Detailed endpoint-by-endpoint request/response schema inventory:
 | OpenRouter | `/api/v1/key`, `/api/v1/credits` | OpenRouter API key | Official | Easiest provider to support for credit + budget usage |
 | Meta Model API / Muse | Per-request `usage` from `/v1/responses`, `/v1/chat/completions`, `/v1/messages`; rate-limit headers on successful responses | Meta Model API key (`MODEL_API_KEY` / local `MUSE_API_KEY`) | Mixed: official inline usage, no aggregate usage API found | Good for per-call token accounting and current RPM/TPM headroom; no documented `dollars used` / historical request-count endpoint found |
 | xAI SuperGrok | `GET https://cli-chat-proxy.grok.com/v1/user`, then `GET /v1/billing?format=credits` | Pi `/login xai` OAuth bearer with `grok-cli:access` scope | Unofficial / product-specific | Reuse the validated `userId` only as the `x-userid` request header; returns a shared weekly period and may return usage percentages or product breakdowns |
+| Kimi Coding Plan | `GET https://api.kimi.com/coding/v1/usages` | Pi `/login kimi-coding` OAuth bearer (or `KIMI_API_KEY` for billed platform access, not plan quota) | Unofficial / product-specific | Returns weekly quota `usage { limit, used, remaining, resetTime }` (numeric strings), rolling window entries in `limits[]`, `parallel.limit`, and `user.membership.level`; `GET .../v1/me` returns the account profile |
 | Kilo Code / Kilo Gateway | Per-request `usage` in gateway responses; source-exposed `GET /api/profile`, `GET /api/profile/balance` | `KILO_API_KEY`, local Kilo auth (`~/.local/share/kilo/auth.json`), or legacy `~/.kilocode/cli/config.json` token | Mixed: official per-request usage, source-exposed balance/profile endpoints | Best current fit is a balance-centric provider tab; stable public aggregate usage API not yet confirmed |
 | Exa | `GET https://admin-api.exa.ai/team-management/api-keys/{id}/usage` (+ team-management key listing) | Exa service API key | Official team-management API | Good for API-key/team usage and billing analytics; no public remaining-balance / credits-left API found |
 | Parallel Search | `Platform > Usage` dashboard (no documented usage API found) | Parallel API key for request APIs; dashboard account for the usage UI | Console-only / no public usage API found | Official docs expose pricing and dashboard usage/spend, but not an API endpoint for balance, credits left, or spend retrieval |
@@ -222,6 +223,36 @@ Existing quota tools use an internal ChatGPT endpoint for user subscription usag
 - Pi’s current xAI OAuth flow: installed `@earendil-works/pi-ai/dist/auth/oauth/xai.js`.
 - Proxy request and defensive response shape: <https://github.com/stnly/pi-grok/blob/main/usage.ts> and <https://github.com/stnly/pi-grok/blob/main/account.ts>.
 - xAI’s official product FAQ describes one shared paid weekly pool across Grok products, but does not document the API endpoint: <https://docs.x.ai/grok/faq>.
+
+---
+
+## Kimi Coding Plan
+
+### Personal subscription usage source
+
+**Endpoint (undocumented / product-specific)**
+- `GET https://api.kimi.com/coding/v1/usages` (base overridable via `KIMI_CODE_BASE_URL` / `KIMI_BASE_URL`; the path is `<base>/v1/usages`)
+- Optional account display: `GET https://api.kimi.com/coding/v1/me` returns `{ user_id, nickname, user_level, user_level_name, email, ... }`.
+
+**Auth and headers**
+- `Authorization: Bearer <Pi kimi-coding OAuth access token>`; Pi stores the credential under `kimi-coding` in `~/.pi/agent/auth.json` and owns refresh.
+- `KIMI_API_KEY` / `KIMI_CODE_API_KEY` provide billed Moonshot platform access and must **not** be treated as Coding Plan quota credentials.
+- CodexBar's native Kimi provider instead imports the `kimi-auth` browser cookie and calls `POST https://www.kimi.com/apiv2/kimi.gateway.billing.v1.BillingService/GetUsages` plus `MembershipService/GetSubscriptionStats`; the `api.kimi.com` path above is preferable here because it reuses the existing Pi login with no browser cookies.
+
+**Observed response fields**
+- `usage { limit, used, remaining, resetTime }`: the weekly Coding Plan quota. Counters arrive as numeric strings (e.g. `"100"`).
+- `limits[]`: rolling window entries, each `{ window: { duration, timeUnit }, detail: { limit, used, remaining, resetTime } }`; observed `TIME_UNIT_MINUTE` with `duration: 300` (5-hour window).
+- `parallel { limit }`: allowed parallel coding sessions.
+- `user.membership.level` (e.g. `LEVEL_BASIC`); no booster wallet object on all accounts.
+
+**Validation and caveats**
+- A safe live validation on 2026-09-12 using this repository's Pi-managed kimi-coding OAuth credential returned HTTP 200 with the weekly quota, one 5-hour window, parallel limit, and membership level. Do not log the bearer token or raw usage body.
+- Treat the endpoint as **unofficial** and fail closed on schema changes. Do not confuse with Kilo Code, a separate product.
+
+**Implementation sources**
+- Pi's kimi-coding OAuth + model protocol: installed `@earendil-works/pi-ai/dist/auth/oauth/kimi-coding.js` and `dist/providers/kimi-coding.js`.
+- Read-only usage client this endpoint shape is based on: <https://github.com/Leechael/pi-provider-kimi-code/blob/main/src/usage.ts>.
+- CodexBar's Kimi rendering (cookie-based reference): <https://github.com/steipete/CodexBar/blob/v0.20/docs/kimi.md>.
 
 ---
 
